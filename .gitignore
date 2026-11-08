@@ -1,0 +1,11 @@
+# Compilación
+zig-out/
+.zig-cache/
+*.exe
+*.pdb
+bin/
+dist/
+
+# Respaldos locales y material privado: nunca se publican
+*.bak*
+_privado/

@@ -1,0 +1,2124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NVMeForge</title>
+<link rel="icon" href="/favicon.ico">
+<script>try { const t = localStorage.getItem("nvf-theme"); if (t && t !== "bosque") document.documentElement.dataset.theme = t; } catch (e) { }</script>
+<style>
+/* NVMeForge v2.4 — interfaz local. Sin fuentes, iconos ni datos externos: todo lo que se muestra
+   viene de /api/* y es medido por Windows. Lo que no se puede medir dice "No disponible". */
+:root {
+  --bg: #0E1713;
+  --rail: #0B130F;
+  --surface: #13211B;
+  --surface-2: #182A22;
+  --line: #233830;
+  --line-strong: #315042;
+  --text: #E3ECE6;
+  --muted: #93AA9D;
+  --faint: #6B8275;
+  --jade: #5BBF92;
+  --jade-2: #8FDDB8;
+  --jade-deep: #173F2F;
+  --brass: #CFAE6A;
+  --brass-deep: #3E3320;
+  --amber: #E2B35B;
+  --coral: #E07A63;
+  --coral-deep: #3D211B;
+  --steel: #7FA3C2;
+  --violet: #9C93C9;
+  --msr: #4A5C53;
+  --radius-l: 14px;
+  --radius-m: 10px;
+  --radius-s: 6px;
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+  --feed-bg: #0A120E;
+  --hatch-a: #15241D;
+  --hatch-b: #111C17;
+  --on-accent: #0B1A13;
+  --on-seg: #0B1712;
+  color-scheme: dark;
+}
+:root[data-theme="grafito"] {
+  --bg: #121314; --rail: #0E0F10; --surface: #1A1C1E; --surface-2: #212427; --line: #2C3034; --line-strong: #3B4046;
+  --text: #E6E8EA; --muted: #A2A8AE; --faint: #737A81; --jade: #5FB8A6; --jade-2: #93D8CA; --jade-deep: #1D3B36;
+  --brass: #C9A86A; --brass-deep: #3A3122; --coral-deep: #3A2420; --msr: #4D545A;
+  --feed-bg: #0C0D0E; --hatch-a: #1C1F21; --hatch-b: #16181A; --on-accent: #0C1714; --on-seg: #101214;
+}
+:root[data-theme="medianoche"] {
+  --bg: #0D1320; --rail: #0A0F1A; --surface: #121A2A; --surface-2: #172136; --line: #22304A; --line-strong: #2E4060;
+  --text: #E3E9F4; --muted: #98A6BF; --faint: #6B7A95; --jade: #6AA7E8; --jade-2: #9CC6F2; --jade-deep: #183152;
+  --brass: #D2AE6C; --brass-deep: #3B3222; --coral-deep: #3B2229; --msr: #44506A;
+  --feed-bg: #090E18; --hatch-a: #152036; --hatch-b: #101929; --on-accent: #0A1424; --on-seg: #0B1220;
+}
+:root[data-theme="claro"] {
+  --bg: #EDF1EF; --rail: #E2E8E5; --surface: #F7F9F8; --surface-2: #EBF0ED; --line: #D3DCD7; --line-strong: #B8C7BF;
+  --text: #16221C; --muted: #4C5D54; --faint: #76867D; --jade: #2E8B62; --jade-2: #1E6B49; --jade-deep: #D4EEE1;
+  --brass: #A07A2C; --brass-deep: #F2E5C8; --amber: #A26F10; --coral: #C0503A; --coral-deep: #F6DCD5;
+  --steel: #4F7699; --violet: #6C62A6; --msr: #A6B3AC;
+  --feed-bg: #F3F6F4; --hatch-a: #E3EAE6; --hatch-b: #EEF2F0; --on-accent: #FFFFFF; --on-seg: #0F1A14;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 14.5px/1.5 var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--jade-2); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+h1 { font-size: 26px; line-height: 1.2; }
+h2 { font-size: 19px; line-height: 1.25; }
+h3 { font-size: 15px; line-height: 1.3; }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 12.5px; }
+
+/* ---------- Shell ---------- */
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr); height: 100%; }
+.rail {
+  background: var(--rail);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column;
+  padding: 18px 14px;
+  gap: 22px;
+  overflow-y: auto;
+}
+.brand { display: flex; align-items: center; gap: 11px; padding: 2px 6px; }
+.brand svg { flex: none; }
+.brand-name { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.brand-ver { font-size: 12px; color: var(--faint); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav button {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 9px 12px;
+  background: none; border: 0; border-radius: var(--radius-m);
+  color: var(--muted); text-align: left; cursor: pointer;
+  font-size: 14.5px;
+}
+.nav button:hover { background: var(--surface); color: var(--text); }
+.nav button[aria-current="page"] { background: var(--surface-2); color: var(--text); box-shadow: inset 3px 0 0 var(--jade); }
+.nav svg { flex: none; width: 20px; height: 20px; }
+.nav .badge { margin-left: auto; font-size: 12px; color: var(--jade-2); }
+.rail-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.status-line { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-m); background: var(--surface); }
+.status-line .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--faint); }
+.status-line.ok .dot { background: var(--jade); }
+.status-line.warn .dot { background: var(--amber); }
+.status-line button { margin-left: auto; }
+.linkish { background: none; border: 0; padding: 0; color: var(--jade-2); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; }
+
+main { overflow-y: auto; min-width: 0; }
+.page { max-width: 1320px; margin: 0 auto; padding: 26px 32px 48px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; flex-wrap: wrap; }
+.page-head p { color: var(--muted); margin-top: 4px; }
+.view[hidden] { display: none; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l); padding: 20px 22px; }
+.view > .panel + .panel, .view > .two + .panel, .view > .panel + .two { margin-top: 16px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 9px 16px; border-radius: var(--radius-m);
+  border: 1px solid var(--line-strong); background: var(--surface-2);
+  cursor: pointer; font-weight: 600; font-size: 14px; white-space: nowrap;
+}
+.btn:hover:not(:disabled) { border-color: var(--jade); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--jade); border-color: var(--jade); color: var(--on-accent); }
+.btn-primary:hover:not(:disabled) { background: var(--jade-2); border-color: var(--jade-2); }
+.btn-danger { background: var(--coral); border-color: var(--coral); color: #210E09; }
+.btn-small { padding: 5px 11px; font-size: 13px; }
+
+.state-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line-strong); font-size: 13.5px; font-weight: 600; }
+.state-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.state-chip.st-run .dot { background: var(--jade); animation: pulse 1.4s ease-in-out infinite; }
+.state-chip.st-ok .dot { background: var(--jade); }
+.state-chip.st-warn .dot { background: var(--amber); }
+.state-chip.st-err .dot { background: var(--coral); }
+@keyframes pulse { 50% { opacity: 0.35; } }
+
+/* ---------- Flujo origen -> destino (pieza central) ---------- */
+.flow { display: grid; grid-template-columns: minmax(0, 1fr) 132px minmax(0, 1fr); align-items: stretch; }
+.disk {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-l);
+  padding: 20px 22px 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; position: relative;
+}
+.disk.src { border-top: 3px solid var(--brass); }
+.disk.dst { border-top: 3px solid var(--jade); }
+.disk-role { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+.disk.src .disk-role strong { color: var(--brass); font-weight: 650; }
+.disk.dst .disk-role strong { color: var(--jade-2); font-weight: 650; }
+.disk-model { font-family: var(--display); font-size: 22px; font-weight: 650; line-height: 1.2; overflow-wrap: anywhere; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 16px; margin: 0; }
+.facts div { min-width: 0; }
+.facts dt { font-size: 12px; color: var(--faint); }
+.facts dd { margin: 1px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.map { position: relative; display: flex; height: 46px; border-radius: var(--radius-s); overflow: hidden; background: repeating-linear-gradient(135deg, var(--hatch-a) 0 6px, var(--hatch-b) 6px 12px); border: 1px solid var(--line); }
+.seg { position: relative; min-width: 5px; height: 100%; border-right: 2px solid var(--bg); display: flex; align-items: flex-end; padding: 0 0 5px 7px; overflow: hidden; }
+.seg:last-child { border-right: 0; }
+.seg span { font-size: 12px; font-weight: 650; color: var(--on-seg); white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+.seg.efi { background: var(--steel); }
+.seg.msr { background: var(--msr); }
+.seg.msr span { color: var(--text); }
+.seg.recovery { background: var(--violet); }
+.seg.other { background: #5E6E66; }
+.seg.data.tint-src { background: var(--brass); }
+.seg.data.tint-dst { background: var(--jade); }
+.seg.data.tint-any { background: #8FA89A; }
+.map-fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, rgba(143, 221, 184, 0.10), rgba(143, 221, 184, 0.55)); border-right: 2px solid var(--jade-2); transition: width 0.6s ease; pointer-events: none; }
+.parts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.parts li { display: grid; grid-template-columns: 14px 54px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.parts li:first-child { border-top: 0; }
+.sw { width: 12px; height: 12px; border-radius: 3px; }
+.parts .letter { font-weight: 650; }
+.parts .what { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.parts .what b { color: var(--text); font-weight: 600; }
+.lock { display: inline-flex; vertical-align: -2px; margin-left: 4px; color: var(--amber); }
+.empty-disk { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; min-height: 230px; border: 1.5px dashed var(--line-strong); border-radius: var(--radius-m); padding: 22px; }
+.empty-disk h2 { color: var(--text); }
+
+.channel { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 0 8px; text-align: center; }
+.pipe { width: 100%; height: 14px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); position: relative; overflow: hidden; }
+.pipe i { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 14px, rgba(143, 221, 184, 0.65) 14px 22px); opacity: 0; }
+.flowing .pipe i { opacity: 1; animation: stream 0.9s linear infinite; }
+@keyframes stream { from { transform: translateX(-22px); } to { transform: translateX(0); } }
+.channel .speed { font-family: var(--display); font-size: 22px; font-weight: 650; line-height: 1.1; }
+.channel .speed small { display: block; font-family: var(--ui); font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.channel .arrow svg { display: block; }
+.flowing .channel .arrow { color: var(--jade-2); }
+.channel .what { font-size: 12.5px; color: var(--muted); }
+.channel .arrow { color: var(--faint); }
+
+/* ---------- Pasos ---------- */
+.steps { list-style: none; margin: 18px 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; counter-reset: step; }
+.steps li { position: relative; padding: 12px 14px 12px 46px; border-radius: var(--radius-m); background: var(--surface); border: 1px solid var(--line); min-width: 0; }
+.steps li::before {
+  counter-increment: step; content: counter(step);
+  position: absolute; left: 13px; top: 12px; width: 22px; height: 22px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 12.5px; font-weight: 700;
+  border: 1.5px solid var(--line-strong); color: var(--muted);
+}
+.steps b { display: block; font-size: 14px; font-weight: 650; }
+.steps small { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.35; margin-top: 2px; }
+.steps li.done::before { content: "✓"; background: var(--jade-deep); border-color: var(--jade); color: var(--jade-2); }
+.steps li.now { border-color: var(--jade); background: var(--surface-2); }
+.steps li.now::before { border-color: var(--jade); color: var(--jade-2); }
+.steps li.fail { border-color: var(--coral); }
+.steps li.fail::before { content: "!"; border-color: var(--coral); color: var(--coral); }
+
+/* ---------- Antes de clonar / acción ---------- */
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 16px; margin-top: 16px; }
+.checks { list-style: none; margin: 0; padding: 0; }
+.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.checks li:first-child { border-top: 0; padding-top: 2px; }
+.checks .ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; margin-top: 1px; }
+.checks .pass .ic { background: var(--jade-deep); color: var(--jade-2); }
+.checks .warn .ic { background: var(--brass-deep); color: var(--amber); }
+.checks .fail .ic { background: var(--coral-deep); color: var(--coral); }
+.checks b { font-weight: 600; }
+.checks small { display: block; color: var(--muted); font-size: 13px; }
+.action p + p { margin-top: 8px; }
+.action .btn-primary { margin-top: 16px; width: 100%; padding: 12px 16px; font-size: 15px; }
+.action .why { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+/* ---------- Ejecución ---------- */
+.run { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 26px; align-items: start; }
+.big { font-family: var(--display); font-size: 56px; font-weight: 650; line-height: 1; letter-spacing: -0.02em; }
+.big small { font-size: 24px; color: var(--muted); font-weight: 600; }
+.run-stage { margin-top: 10px; font-size: 15px; font-weight: 600; }
+.run-detail { margin-top: 4px; color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; margin-top: 16px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--jade); transition: width 0.6s ease; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 0 0 18px; }
+.metrics div { background: var(--surface-2); border-radius: var(--radius-m); padding: 11px 14px; min-width: 0; }
+.metrics dt { font-size: 12.5px; color: var(--muted); }
+.metrics dd { margin: 2px 0 0; font-family: var(--display); font-size: 20px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.stages li { font-size: 12.5px; color: var(--faint); padding-top: 8px; border-top: 3px solid var(--line); line-height: 1.3; }
+.stages li.done { color: var(--muted); border-top-color: var(--jade-deep); }
+.stages li.now { color: var(--text); border-top-color: var(--jade); font-weight: 600; }
+.stages li.fail { color: var(--coral); border-top-color: var(--coral); }
+.result { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; }
+.result.ok { border-color: var(--jade); }
+.result.err { border-color: var(--coral); }
+.result.warn { border-color: var(--amber); }
+.result h2 { margin-bottom: 6px; }
+.explain { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.explain div { background: var(--surface-2); border-radius: var(--radius-m); padding: 12px 14px; }
+.explain h3 { font-size: 13.5px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+.explain p { font-size: 14px; }
+/* F9: asistente post-clon ("Qué sigue") */
+.after { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.after-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.after-head h3 { font-size: 15px; }
+.after-count { font-size: 13px; color: var(--muted); }
+.after-count b { color: var(--jade-2); font-weight: 650; }
+.after-bar { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; margin-bottom: 8px; }
+.after-bar i { display: block; height: 100%; background: var(--jade); transition: width 0.3s ease; }
+.after-warn { margin-bottom: 10px; border-left: 3px solid var(--amber); }
+.after ol { list-style: none; margin: 0; padding: 0; counter-reset: after; }
+.after li { border-top: 1px solid var(--line); }
+.after li:first-child { border-top: 0; }
+.after label { display: grid; grid-template-columns: 20px 22px minmax(0, 1fr); gap: 8px; align-items: start; padding: 8px 0; cursor: pointer; font-size: 14px; }
+.after label::before { counter-increment: after; content: counter(after) "."; color: var(--faint); font-size: 13px; text-align: right; padding-top: 1px; }
+.after input { accent-color: var(--jade); width: 16px; height: 16px; margin: 3px 0 0; cursor: pointer; }
+.after li.done span { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+.sound-toggle { width: 100%; border: 0; cursor: pointer; text-align: left; color: var(--muted); font-size: 13px; }
+.sound-toggle:hover { color: var(--text); }
+.sound-toggle svg { flex: none; }
+
+.feed { margin: 0; padding: 12px 14px; max-height: 300px; overflow: auto; background: var(--feed-bg); border: 1px solid var(--line); border-radius: var(--radius-m); font: 12.5px/1.55 var(--mono); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.feed .e { color: var(--coral); }
+.feed .w { color: var(--amber); }
+.feed .k { color: var(--jade-2); }
+.feed .t { color: var(--faint); }
+.toggle-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- Discos ---------- */
+.disk-grid { display: flex; flex-direction: column; gap: 16px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+.tag.src { border-color: var(--brass); color: var(--brass); }
+.tag.dst { border-color: var(--jade); color: var(--jade-2); }
+.health { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.health div { background: var(--surface-2); border-radius: var(--radius-m); padding: 10px 13px; }
+.health dt { font-size: 12.5px; color: var(--muted); }
+.health dd { margin: 2px 0 0; font-size: 17px; font-weight: 650; font-family: var(--display); }
+.health .bad { color: var(--coral); }
+.health .warn-t { color: var(--amber); }
+.note { font-size: 13px; color: var(--muted); background: var(--surface-2); border-radius: var(--radius-m); padding: 10px 13px; }
+table.t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.t th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12.5px; padding: 6px 10px 8px 0; border-bottom: 1px solid var(--line-strong); }
+table.t td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.t td.r, table.t th.r { text-align: right; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+
+/* ---------- Rendimiento ---------- */
+.pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.pick label { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; padding: 12px 14px; border-radius: var(--radius-m); border: 1px solid var(--line); background: var(--surface-2); cursor: pointer; }
+.pick label:has(input:checked) { border-color: var(--jade); }
+.pick input { accent-color: var(--jade); margin-top: 3px; }
+.pick small { display: block; color: var(--muted); font-size: 12.5px; }
+.pick label.off { opacity: .55; cursor: not-allowed; }
+.dst-pick { margin-bottom: 16px; }
+.dst-pick .pick small b { color: var(--text); font-weight: 600; }
+.bench-out { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.bench-out div { background: var(--surface-2); border-radius: var(--radius-m); padding: 14px 16px; }
+.bench-out dt { color: var(--muted); font-size: 13px; }
+.bench-out dd { margin: 4px 0 0; font-family: var(--display); font-size: 30px; font-weight: 650; }
+.bench-out dd small { font-size: 14px; color: var(--muted); font-weight: 600; }
+.suite-opts { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; font-size: 13.5px; color: var(--muted); }
+.suite-opts label { display: flex; gap: 8px; align-items: center; }
+.bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 16px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--jade); transition: width 0.4s ease; }
+.suite-grid { display: grid; grid-template-columns: 130px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-top: 18px; }
+.suite-grid .hd { font-size: 13px; color: var(--muted); font-weight: 600; text-align: center; padding-bottom: 2px; }
+.suite-grid .lbl { background: var(--surface-2); border-radius: var(--radius-m); display: grid; place-items: center; text-align: center; font-weight: 650; font-size: 13.5px; line-height: 1.25; padding: 8px; }
+.suite-grid .cell { background: var(--surface-2); border-radius: var(--radius-m); padding: 10px 14px; text-align: right; position: relative; overflow: hidden; min-height: 64px; }
+.suite-grid .cell .v { font-family: var(--display); font-size: 28px; font-weight: 650; position: relative; }
+.suite-grid .cell .s { font-size: 12px; color: var(--muted); position: relative; }
+.suite-grid .cell .fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, rgba(95, 184, 166, 0.10), rgba(95, 184, 166, 0.30)); }
+.suite-grid .cell.now { outline: 2px solid var(--jade); }
+.suite-grid .cell.empty .v { color: var(--faint); }
+.suite-live { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 14px; font-size: 13.5px; color: var(--muted); }
+.suite-live b { color: var(--text); font-weight: 650; }
+details.quick > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+details.quick > summary::-webkit-details-marker { display: none; }
+details.quick > summary h2::before { content: "▸ "; color: var(--muted); }
+details.quick[open] > summary h2::before { content: "▾ "; }
+.view > details.panel { margin-top: 16px; }
+.diag { margin-top: 16px; }
+.diag h3 { font-size: 14px; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+@media (max-width: 720px) { .suite-grid { grid-template-columns: 92px minmax(0, 1fr) minmax(0, 1fr); } .suite-grid .cell .v { font-size: 20px; } }
+.indet { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; margin-top: 14px; position: relative; }
+.indet i { position: absolute; top: 0; bottom: 0; width: 30%; background: var(--jade); animation: indet 1.2s ease-in-out infinite; }
+@keyframes indet { from { left: -30%; } to { left: 100%; } }
+
+/* ---------- Diálogo y avisos ---------- */
+dialog { background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius-l); padding: 0; width: min(560px, calc(100vw - 32px)); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); }
+dialog::backdrop { background: rgba(4, 9, 7, 0.72); }
+.dlg { padding: 24px 26px; display: flex; flex-direction: column; gap: 14px; }
+.dlg .target { background: var(--coral-deep); border: 1px solid rgba(224, 122, 99, 0.45); border-radius: var(--radius-m); padding: 12px 14px; }
+.dlg .target b { display: block; font-size: 16px; }
+.dlg label.ack { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.dlg label.ack input { accent-color: var(--coral); margin-top: 4px; }
+.dlg .row { display: flex; justify-content: flex-end; gap: 10px; }
+.toasts { position: fixed; right: 20px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 50; }
+.toast { color: var(--text); background: var(--surface-2); border: 1px solid var(--line-strong); border-left: 3px solid var(--jade); border-radius: var(--radius-m); padding: 10px 14px; font-size: 13.5px; max-width: 360px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+.toast.warn { border-left-color: var(--amber); }
+
+/* ---------- Temas ---------- */
+.themes { display: flex; gap: 6px; padding: 4px 10px 0; }
+.themes button { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-strong); cursor: pointer; padding: 0; }
+.themes button[aria-pressed="true"] { border-color: var(--text); }
+
+/* ---------- Estado del último clon ---------- */
+.clone-state { display: grid; grid-template-columns: auto minmax(0, 1fr) 1px auto minmax(0, 1.3fr) auto; gap: 18px; align-items: center; margin-bottom: 16px; }
+.clone-state .fig { font-family: var(--display); font-size: 40px; font-weight: 650; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; }
+.clone-state .fig.ok { color: var(--jade-2); }
+.clone-state .fig.drift { color: var(--amber); }
+.clone-state .sep { width: 1px; align-self: stretch; background: var(--line); }
+.clone-state p { font-size: 13.5px; color: var(--muted); }
+.clone-state b { color: var(--text); font-weight: 600; }
+
+/* ---------- Temperatura y salud ---------- */
+.thermo { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; align-items: stretch; background: var(--surface-2); border-radius: var(--radius-m); padding: 14px 16px; }
+.thermo svg { width: 100%; height: 96px; display: block; }
+.thermo .now { font-family: var(--display); font-size: 34px; font-weight: 650; line-height: 1; }
+.thermo dl { margin: 10px 0 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.thermo dt { font-size: 12px; color: var(--muted); }
+.thermo dd { margin: 0; font-weight: 650; }
+.lifebox { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px; align-items: center; }
+.gauge { text-align: center; }
+.gauge svg { width: 180px; height: 104px; display: block; margin: 0 auto; }
+.gauge .v { font-family: var(--display); font-size: 26px; font-weight: 650; margin-top: -34px; }
+.gauge .l { font-size: 12.5px; color: var(--muted); }
+.run-head { font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+.run-head b { color: var(--text); font-weight: 600; }
+.run-head .e { color: var(--coral); } .run-head .w { color: var(--amber); } .run-head .k { color: var(--jade-2); }
+select.sel { background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--radius-m); padding: 6px 10px; font: inherit; font-size: 13px; }
+
+/* ---------- Adaptación al tamaño de ventana ---------- */
+@media (max-width: 1180px) {
+  .app { grid-template-columns: 74px minmax(0, 1fr); }
+  .brand-text, .nav .label, .nav .badge, .rail-foot .label, .rail-foot .linkish { display: none; }
+  .nav button { justify-content: center; padding: 11px 0; }
+  .status-line { justify-content: center; padding: 10px 0; }
+  .status-line button { display: none; }
+  .themes { flex-direction: column; align-items: center; padding: 4px 0 0; }
+  .clone-state { grid-template-columns: auto minmax(0, 1fr); }
+  .clone-state > button { grid-column: 1 / -1; justify-self: start; }
+  .clone-state .sep { display: none; }
+  .page { padding: 22px 22px 40px; }
+  .steps { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .steps small { display: none; }
+  .health { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 980px) {
+  .flow { grid-template-columns: minmax(0, 1fr); }
+  .channel { flex-direction: row; padding: 12px 0; }
+  .pipe { width: 120px; }
+  .grid-2, .run, .two, .explain, .result { grid-template-columns: minmax(0, 1fr); }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stages { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 12px; }
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .steps small { display: block; }
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bench-out { grid-template-columns: minmax(0, 1fr); }
+  .thermo, .lifebox { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Navegación">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+        <rect x="1" y="1" width="32" height="32" rx="9" fill="#13211B" stroke="#315042"/>
+        <rect x="7" y="9" width="9" height="16" rx="2.2" fill="#CFAE6A"/>
+        <rect x="18" y="9" width="9" height="16" rx="2.2" fill="#5BBF92"/>
+        <path d="M13.5 17h7" stroke="#0E1713" stroke-width="2" stroke-linecap="round"/>
+        <path d="M18.3 14.6 20.8 17l-2.5 2.4" fill="none" stroke="#0E1713" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand-text">
+        <div class="brand-name">NVMeForge</div>
+        <div class="brand-ver" id="brandVer">versión —</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button data-view="clone" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="14" rx="1.6"/><rect x="14" y="5" width="7" height="14" rx="1.6"/><path d="M10 12h4m-1.6-1.8L14 12l-1.6 1.8"/></svg>
+        <span class="label">Clonar</span><span class="badge" id="navCloneBadge"></span>
+      </button>
+      <button data-view="disks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.6"/><rect x="3" y="14" width="18" height="6" rx="1.6"/><path d="M7 7h.01M7 17h.01"/></svg>
+        <span class="label">Discos</span><span class="badge" id="navDiskBadge"></span>
+      </button>
+      <button data-view="bench">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4.2-5.2"/></svg>
+        <span class="label">Rendimiento</span>
+      </button>
+      <button data-view="machine">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.8"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>
+        <span class="label">Equipo</span>
+      </button>
+      <button data-view="log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M5 5h14M5 10h14M5 15h9M5 20h6"/></svg>
+        <span class="label">Registro</span>
+      </button>
+    </nav>
+    <div class="rail-foot">
+      <div class="status-line" id="adminLine" title="Permisos de administrador">
+        <span class="dot"></span><span class="label" id="adminText">Permisos: comprobando</span>
+        <button class="linkish" id="btnElevate" hidden>Pedir</button>
+      </div>
+      <div class="status-line" id="powerLine" title="Energía">
+        <span class="dot"></span><span class="label" id="powerText">Energía: comprobando</span>
+      </div>
+      <button class="status-line sound-toggle" id="btnSound" type="button" aria-pressed="true" title="Sonido al terminar la clonación">
+        <svg id="soundIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="off" d="M17 9l5 6M22 9l-5 6"/></svg>
+        <span class="label" id="soundText">Sonido al terminar: sí</span>
+      </button>
+      <div class="themes" role="group" aria-label="Tema de colores">
+        <button data-theme-pick="bosque" title="Bosque (verde oscuro)" style="background:#13211B"></button>
+        <button data-theme-pick="grafito" title="Grafito (gris oscuro)" style="background:#212427"></button>
+        <button data-theme-pick="medianoche" title="Medianoche (azul oscuro)" style="background:#172136"></button>
+        <button data-theme-pick="claro" title="Claro" style="background:#EBF0ED"></button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ======================= CLONAR ======================= -->
+    <section class="view page" id="view-clone" aria-labelledby="hClone">
+      <div class="page-head">
+        <div>
+          <h1 id="hClone">Clonar disco</h1>
+          <p id="cloneSub">Copia el Windows de este equipo al NVMe conectado en el adaptador USB y verifica cada byte escrito.</p>
+        </div>
+        <span class="state-chip" id="stateChip"><span class="dot"></span><span id="stateText">Leyendo discos</span></span>
+      </div>
+
+      <div class="panel clone-state" id="cloneState" hidden></div>
+
+      <div class="panel dst-pick" id="dstPickPanel" hidden>
+        <div class="panel-head"><h2>¿En qué disco clonar?</h2><span class="muted" id="dstPickNote"></span></div>
+        <div class="pick" id="dstPick" role="radiogroup" aria-label="Disco destino"></div>
+      </div>
+
+      <div class="flow" id="flow">
+        <article class="disk src" id="srcCard" aria-label="Disco de origen"></article>
+        <div class="channel">
+          <div class="speed num" id="chanSpeed">&nbsp;</div>
+          <div class="pipe" aria-hidden="true"><i></i></div>
+          <div class="arrow" aria-hidden="true"><svg width="40" height="18" viewBox="0 0 40 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9h34M29 3l7 6-7 6"/></svg></div>
+          <div class="what" id="chanWhat">Origen a destino</div>
+        </div>
+        <article class="disk dst" id="dstCard" aria-label="Disco de destino"></article>
+      </div>
+
+      <ol class="steps" id="steps">
+        <li data-step="connect"><b>Conecta</b><small>El NVMe destino en el adaptador USB</small></li>
+        <li data-step="review"><b>Revisa</b><small>Comprobaciones de seguridad</small></li>
+        <li data-step="clone"><b>Clona</b><small>Instantánea de C: y copia</small></li>
+        <li data-step="verify"><b>Verifica</b><small>Relectura del 100 % de lo escrito</small></li>
+        <li data-step="remove"><b>Retira</b><small>Desconecta o conecta el siguiente</small></li>
+      </ol>
+
+      <div id="idleArea" class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><h2>Antes de clonar</h2><span class="muted" id="checkSummary"></span></div>
+          <ul class="checks" id="checks"></ul>
+        </div>
+        <div class="panel action">
+          <div class="panel-head"><h2>Qué va a pasar</h2></div>
+          <div id="actionText"><p class="muted">Leyendo los discos conectados.</p></div>
+          <button class="btn btn-primary" id="btnStart" disabled>Clonar</button>
+          <p class="why" id="startWhy"></p>
+        </div>
+      </div>
+
+      <div id="runArea" class="panel" hidden style="margin-top:16px">
+        <div class="run">
+          <div>
+            <div class="big num" id="runPct">0<small>%</small></div>
+            <div class="run-stage" id="runStage"></div>
+            <div class="run-detail" id="runDetail"></div>
+            <div class="bar"><i id="runBar"></i></div>
+          </div>
+          <div>
+            <dl class="metrics">
+              <div><dt id="mCopiedLbl">Copiado</dt><dd class="num" id="mCopied">—</dd></div>
+              <div><dt>Velocidad</dt><dd class="num" id="mSpeed">—</dd></div>
+              <div><dt>Tiempo restante</dt><dd class="num" id="mEta">—</dd></div>
+              <div><dt>Transcurrido</dt><dd class="num" id="mElapsed">—</dd></div>
+            </dl>
+            <p class="note" style="margin-bottom:14px">Puedes cerrar esta ventana: la clonación sigue y NVMeForge se cierra solo al terminar. Para volver a verla, abre NVMeForge otra vez.</p>
+            <ol class="stages" id="stages">
+              <li>Destino y bus USB</li>
+              <li>Instantánea de C:</li>
+              <li>Comprobaciones</li>
+              <li>Particiones nuevas</li>
+              <li>Copia y verificación</li>
+              <li>Reparar y ampliar</li>
+              <li>Arranque y WinRE</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div id="resultArea" class="panel result" hidden style="margin-top:16px"></div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head">
+          <h2>Eventos de la corrida actual</h2>
+          <div class="toggle-row">
+            <button class="btn btn-small" id="btnRaw">Ver registro completo</button>
+            <button class="btn btn-small" id="btnCopyEvents">Copiar</button>
+          </div>
+        </div>
+        <div id="eventsHead"></div>
+        <pre class="feed" id="events">Sin eventos todavía.</pre>
+      </div>
+    </section>
+
+    <!-- ======================= DISCOS ======================= -->
+    <section class="view page" id="view-disks" hidden aria-labelledby="hDisks">
+      <div class="page-head">
+        <div>
+          <h1 id="hDisks">Discos</h1>
+          <p>Lo que Windows reporta de cada disco conectado, sin valores de relleno. Se actualiza solo al conectar o retirar un disco.</p>
+        </div>
+      </div>
+      <div class="disk-grid" id="diskList"></div>
+    </section>
+
+    <!-- ======================= RENDIMIENTO ======================= -->
+    <section class="view page" id="view-bench" hidden aria-labelledby="hBench">
+      <div class="page-head">
+        <div>
+          <h1 id="hBench">Rendimiento</h1>
+          <p>Mide el disco con las mismas 4 pruebas que CrystalDiskMark, lectura y escritura, sobre un archivo temporal de 1 GiB que se borra al terminar. Mientras mide, vigila la temperatura del disco.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Disco a medir</h2><span class="muted" id="suiteEta"></span></div>
+        <div class="pick" id="benchPick"></div>
+        <div class="suite-opts">
+          <label>Unidad del archivo de prueba <select class="sel" id="suiteLetter" aria-label="Unidad"></select></label>
+          <label>Pasadas por prueba <select class="sel" id="suitePasses" aria-label="Pasadas">
+            <option value="1">1 (rápida)</option><option value="3" selected>3 (normal)</option><option value="5">5 (como CrystalDiskMark)</option>
+          </select></label>
+          <label>Tamaño del archivo <select class="sel" id="suiteSize" aria-label="Tamaño">
+            <option value="1" selected>1 GiB (como CrystalDiskMark)</option><option value="4">4 GiB</option><option value="16">16 GiB (más zona del disco)</option>
+          </select></label>
+        </div>
+        <p class="note" id="suiteNote" style="margin-top:12px"></p>
+        <div style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" id="btnSuite" disabled>Medir</button>
+          <button class="btn" id="btnSuiteCancel" hidden>Cancelar</button>
+          <button class="btn" id="btnSuiteCopy" hidden>Copiar resultados</button>
+          <span class="muted" id="suiteMsg" role="status"></span>
+        </div>
+        <div class="bar" id="suiteBar" hidden><i></i></div>
+        <div class="suite-grid" id="suiteGrid"></div>
+        <div class="suite-live" id="suiteLive" hidden></div>
+      </div>
+      <div class="panel" id="suiteVerdictPanel" hidden>
+        <div class="panel-head"><h2>Veredicto</h2><span class="muted" id="suiteVerdictWhen"></span></div>
+        <ul class="checks" id="suiteVerdict"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Ajustes de Windows que cambian la medición</h2><span class="muted">Solo se leen; NVMeForge no los cambia</span></div>
+        <ul class="checks" id="powerChecks"></ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Historial</h2><span class="muted">Guardado en %TEMP%\NVMeForge\logs\bench_suite_history.tsv</span></div>
+        <div style="overflow-x:auto">
+          <table class="t" id="suiteHist"><thead><tr><th>Fecha</th><th>Disco</th><th class="r">SEQ1M Q8T1</th><th class="r">SEQ1M Q1T1</th><th class="r">RND4K Q32T1</th><th class="r">RND4K Q1T1</th><th class="r">Temp. máx.</th><th class="r">Frenadas</th><th class="r">Archivo</th></tr></thead><tbody></tbody></table>
+        </div>
+        <p class="faint" style="font-size:12.5px;margin-top:8px">Cada celda: lectura / escritura en MB/s.</p>
+      </div>
+      <details class="panel quick">
+        <summary><h2>Prueba rápida de solo lectura</h2><span class="muted">Para discos sin letra, como el destino recién conectado</span></summary>
+        <p class="muted" style="margin-top:10px">Lee el disco en bruto, sin crear archivos: secuencial en cuatro zonas y aleatoria de 4 KiB de una en una. En un disco nuevo o con mucho espacio vacío puede salir más alta que la realidad, porque el disco responde al instante las zonas que nunca se escribieron. Para saber cuánto rinde de verdad, usa la prueba de arriba.</p>
+        <div style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <button class="btn" id="btnBench" disabled>Medir solo lectura</button>
+          <span class="muted" id="benchMsg"></span>
+        </div>
+        <div class="indet" id="benchIndet" hidden><i></i></div>
+        <dl class="bench-out" id="benchOut" hidden>
+          <div><dt>Lectura secuencial</dt><dd class="num" id="bSeq">—</dd></div>
+          <div><dt>Lectura aleatoria 4 KiB</dt><dd class="num" id="bIops">—</dd></div>
+          <div><dt>Latencia media por lectura</dt><dd class="num" id="bLat">—</dd></div>
+        </dl>
+        <div style="overflow-x:auto;margin-top:14px">
+          <table class="t" id="benchHist"><thead><tr><th>Fecha</th><th>Disco</th><th class="r">Secuencial</th><th class="r">Aleatoria 4 KiB</th><th class="r">Latencia</th></tr></thead><tbody></tbody></table>
+        </div>
+      </details>
+    </section>
+
+    <!-- ======================= EQUIPO ======================= -->
+    <section class="view page" id="view-machine" hidden aria-labelledby="hMachine">
+      <div class="page-head">
+        <div>
+          <h1 id="hMachine">Equipo</h1>
+          <p>Datos leídos del firmware del equipo (SMBIOS) y de Windows.</p>
+        </div>
+      </div>
+      <div class="two">
+        <div class="panel"><div class="panel-head"><h2>Sistema</h2></div><table class="t" id="sysTable"><tbody></tbody></table></div>
+        <div class="panel"><div class="panel-head"><h2>Energía y permisos</h2></div><table class="t" id="powTable"><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Módulos de memoria</h2><span class="muted" id="ramTotal"></span></div>
+        <div style="overflow-x:auto"><table class="t" id="ramTable"><thead><tr><th>Ranura</th><th class="r">Tamaño</th><th>Tipo</th><th class="r">Velocidad</th><th>Fabricante</th><th>Número de parte</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ======================= REGISTRO ======================= -->
+    <section class="view page" id="view-log" hidden aria-labelledby="hLog">
+      <div class="page-head">
+        <div>
+          <h1 id="hLog">Registro</h1>
+          <p>Corrida actual: %TEMP%\NVMeForge\logs\clone_run.log. Las anteriores se guardan en logs\runs (las últimas 20). Los eventos omiten las líneas de progreso; el registro completo las muestra todas.</p>
+        </div>
+        <div class="toggle-row">
+          <select class="sel" id="runSel" aria-label="Corrida"></select>
+          <button class="btn btn-small" id="btnLogMode">Ver registro completo</button>
+          <button class="btn btn-small" id="btnLogCopy">Copiar</button>
+        </div>
+      </div>
+      <div id="logHead"></div>
+      <pre class="feed" id="logFeed" style="max-height:calc(100vh - 230px)">Cargando.</pre>
+    </section>
+  </main>
+</div>
+
+<dialog id="confirmDlg" aria-labelledby="dlgTitle">
+  <form method="dialog" class="dlg">
+    <h2 id="dlgTitle">Borrar el destino y clonar</h2>
+    <p>Todo el contenido de este disco se va a borrar para copiar en él el Windows de este equipo:</p>
+    <div class="target" id="dlgTarget"></div>
+    <p class="muted" id="dlgSource"></p>
+    <label class="ack"><input type="checkbox" id="dlgAck"><span>Entiendo que se borra todo lo que hay en ese disco y que no se puede deshacer.</span></label>
+    <div class="row">
+      <button class="btn" value="cancel">Cancelar</button>
+      <button class="btn btn-danger" id="dlgGo" value="go" disabled>Borrar y clonar</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------------------------------------
+// Estado
+// ---------------------------------------------------------------------------------------------
+const S = {
+  status: null,       // /api/status
+  system: null,       // /api/status?system=1 -> .system
+  progress: null,     // /api/progress
+  events: "",         // /api/run-summary
+  benchHist: [],
+  diskKeys: null,     // para detectar conexión / retiro
+  runStartedAt: null,
+  startRequested: false,
+  rawMode: false,
+  logRaw: false,
+  benchBusy: false,
+  suite: null,        // /api/suite (v3.0: banco de 4 pruebas)
+  suiteHist: [],      // /api/suite-history
+  suiteStarting: false,
+  healthHist: [],     // /api/health-history (v3.1)
+  clones: [],         // /api/clones (historial de clones terminados)
+  changes: null,      // /api/changes (archivos de C: cambiados desde el último clon)
+  changesAt: 0,
+  temps: {},          // disco -> [{t, c}] muestras de temperatura de esta sesión (10 min)
+  runs: [],           // /api/runs (corridas archivadas)
+  logRun: "",         // corrida mostrada en Registro ("" = actual)
+  logRunText: "",
+  prevRunText: "",    // resumen de la corrida archivada más reciente (sesión anterior)
+  openedAt: Date.now(),
+  targetSel: null,    // disco destino elegido por el usuario (v2.7: ya no es fijo el disco 1)
+  dstPickSig: "",
+};
+const STAGE_NAMES = ["Destino y bus USB", "Instantánea de C:", "Comprobaciones", "Particiones nuevas", "Copia y verificación", "Reparar y ampliar", "Arranque y WinRE"];
+const KIND_NAMES = { efi: "Arranque EFI", msr: "Reservada (MSR)", data: "Datos", recovery: "Recuperación", other: "Otra" };
+
+// Qué hacer ante cada error del motor (los textos del motor ya traen el detalle técnico).
+const GUIDE = {
+  "NVF-E001": { t: "El disco destino no sirve", touched: "Nada. No se tocó ningún disco.", todo: "Si no se pudo leer su tamaño, revisa que siga conectado. Si es muy chico, usa uno que mida al menos lo que ocupa C: más el arranque y la recuperación (lo muestra Antes de clonar)." },
+  "NVF-E038": { t: "No hay un disco destino válido elegido", touched: "Nada. No se tocó ningún disco.", todo: "Elige el disco destino en Clonar (no puede ser el de Windows) y vuelve a confirmar. Por línea de comandos, usa --target=N." },
+  "NVF-E007": { t: "diskpart no pudo preparar el destino", touched: "Solo el disco destino: su tabla de particiones pudo quedar a medias. El origen no se tocó.", todo: "Revisa dp_init.log en el registro, desconecta y vuelve a conectar el adaptador, y reintenta." },
+  "NVF-E008": { t: "El destino es el disco de Windows", touched: "Nada. Se detuvo antes de borrar.", todo: "Conecta el NVMe destino por el adaptador USB; el disco de Windows nunca puede ser el destino." },
+  "NVF-E009": { t: "No hay letras de unidad libres", touched: "Nada. Se detuvo antes de borrar.", todo: "NVMeForge necesita 5 letras de unidad libres para trabajar. Expulsa algunas unidades USB, de red o lectores de tarjetas y reintenta. (En versiones anteriores este código decía qué disco usaba la letra: cámbiale la letra en Administración de discos.)" },
+  "NVF-E039": { t: "Quedó una letra de un disco que ya no existe", touched: "Nada. Se detuvo antes de borrar.", todo: "En el Explorador aparece como \"Disco local\" sin tamaño. NVMeForge intentó quitarla y Windows no lo dejó: reinicia el equipo (la limpia) o, en PowerShell como administrador, usa mountvol con esa letra y /D. Después reintenta." },
+  "NVF-E010": { t: "El adaptador está funcionando a velocidad USB 2.0", touched: "Nada.", todo: "Conéctalo a un puerto USB-C de 10 Gbps, con un cable que lo soporte, y reintenta." },
+  "NVF-E011": { t: "Falló la transferencia de datos", touched: "El destino quedó a medio copiar; no lo uses. El origen está intacto.", todo: "Busca las líneas IO_ERROR en el registro. Revisa cable y adaptador y vuelve a clonar." },
+  "NVF-E018": { t: "No se pudo instalar el arranque UEFI", touched: "El destino tiene la copia pero todavía no arranca.", todo: "Revisa bcdboot.log en el registro y vuelve a clonar." },
+  "NVF-E019": { t: "Terminó con advertencias", touched: "El destino está copiado y el arranque instalado.", todo: "Revisa en los eventos qué pasos dicen ADVERTENCIA antes de instalar el disco." },
+  "NVF-E022": { t: "No se pudo congelar C: (instantánea VSS)", touched: "Nada. Sin instantánea no se copia.", todo: "Comprueba que el servicio Instantáneas de volumen esté activo y que C: tenga espacio libre." },
+  "NVF-E023": { t: "No se pudo confirmar que el destino sea otro disco", touched: "Nada. Se detuvo antes de borrar.", todo: "Revisa que elegiste el disco correcto. Si el adaptador muestra la misma serie que el disco de Windows, desconecta los demás discos USB y deja solo el destino." },
+  "NVF-E024": { t: "La partición nueva no quedó donde se esperaba", touched: "El destino se particionó, pero no se copió nada.", todo: "Desconecta y vuelve a conectar el adaptador y reintenta." },
+  "NVF-E025": { t: "La verificación encontró diferencias", touched: "El destino tiene una copia que no coincide: no lo uses. El origen está intacto.", todo: "Vuelve a clonar. Si se repite, prueba otro cable, otro puerto o el disco destino." },
+  "NVF-E026": { t: "La verificación completa encontró diferencias", touched: "El destino tiene una copia que no coincide: no lo uses. El origen está intacto.", todo: "Vuelve a clonar. Si se repite, prueba otro cable, otro puerto o el disco destino." },
+  "NVF-E027": { t: "No se pudo bloquear el disco destino", touched: "El destino se particionó, pero no se copió nada.", todo: "Cierra el Explorador y cualquier ventana que muestre el disco W: y reintenta." },
+  "NVF-E035": { t: "El disco conectado no es el que confirmaste", touched: "Nada. Se detuvo antes de borrar.", todo: "Otro disco ocupó el lugar del destino (por ejemplo, conectaste otra unidad USB o el adaptador se reconectó). Revisa la pantalla y vuelve a confirmar." },
+  "NVF-E036": { t: "Faltan condiciones para clonar con seguridad", touched: "Nada. Se detuvo antes de borrar.", todo: "Conecta el cargador si estás en batería por debajo del 60 % y deja al menos 10 GB libres en C: para la instantánea." },
+  "NVF-E040": { t: "El origen y el destino usan distinto tamaño de sector", touched: "Nada. No se tocó ningún disco.", todo: "Uno usa sectores de 512 bytes y el otro de 4096: Windows no podría abrir C: en el disco nuevo. Usa otro disco destino (la mayoría de los NVMe usan 512)." },
+  "NVF-E041": { t: "No se pudo copiar o verificar una partición extra", touched: "El disco destino quedó a medias: no lo uses; tu disco original no se tocó.", todo: "Revisa en el registro qué partición falló (busca IO_ERROR o la verificación), revisa cable, adaptador y puerto, y vuelve a clonar." },
+  "NVF-E031": { t: "El destino ya tiene un clon terminado", touched: "Nada. Se protegió ese clon.", todo: "Si es un disco ya listo, retíralo. Si de verdad quieres reclonarlo, borra W:\\NVMeForge_CLON_OK.txt y reintenta." },
+};
+
+// ---------------------------------------------------------------------------------------------
+// Utilidades
+// ---------------------------------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = (n, d = 0) => Number(n).toLocaleString("es-MX", { minimumFractionDigits: d, maximumFractionDigits: d });
+const NA = '<span class="faint">No disponible</span>';
+function fmtBytes(b) {               // decimal, como en la etiqueta del disco
+  if (b == null || !isFinite(b)) return null;
+  const u = [["TB", 1e12], ["GB", 1e9], ["MB", 1e6], ["KB", 1e3]];
+  for (const [n, v] of u) if (b >= v) return `${nf(b / v, b / v >= 100 ? 0 : b / v >= 10 ? 1 : 2)} ${n}`;
+  return `${b} B`;
+}
+function fmtGiB(b) { return b == null ? null : `${nf(b / 1073741824, 2)} GiB`; }
+function fmtDur(sec) {
+  if (sec == null || !isFinite(sec) || sec < 0) return "—";
+  sec = Math.round(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h ? `${h} h ${m} min` : m ? `${m} min ${String(s).padStart(2, "0")} s` : `${s} s`;
+}
+async function api(path, opts = {}) {
+  const o = Object.assign({ cache: "no-store" }, opts);
+  if (o.method === "POST") o.headers = Object.assign({ "X-NVMeForge": "1" }, o.headers || {});
+  const r = await fetch(path, o);
+  if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
+  const ct = r.headers.get("content-type") || "";
+  return ct.includes("json") ? r.json() : r.text();
+}
+function toast(msg, kind = "") {
+  const el = document.createElement("div");
+  el.className = `toast ${kind}`;
+  el.textContent = msg;
+  $("toasts").appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
+function diskLabel(d) { return d ? (d.model || `Disco ${d.number}`) : "—"; }
+function busLabel(d) {
+  if (!d || !d.bus) return null;
+  return d.bus === "USB" ? "USB (adaptador)" : d.bus;
+}
+function cPartition(disk) { return (disk?.partitions || []).find((p) => p.letter === "C:"); }
+// v2.8: las particiones del origen además de EFI, MSR, C: y WinRE (null si el motor es anterior).
+function extraParts() { const x = S.status?.extra_partitions; return Array.isArray(x) ? x : null; }
+function extraName(p) { return `${KIND_NAMES[p.kind] || "Partición"} de ${fmtBytes(p.bytes) || "tamaño desconocido"}`; }
+function joinY(a) { return a.length < 2 ? (a[0] || "") : `${a.slice(0, -1).join(", ")} y ${a[a.length - 1]}`; }
+// "arranque EFI, MSR, C:, recuperación y 2 más" según lo que tiene el origen.
+function copiedSummary(src, raw) {
+  const has = (k) => (src?.partitions || []).some((p) => p.kind === k);
+  const base = [has("efi") ? "arranque EFI" : null, has("msr") ? "MSR" : null, "C:", has("recovery") ? "recuperación" : null].filter(Boolean);
+  if (raw.length) base.push(`${raw.length} más`);
+  return joinY(base);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Temperatura, salud y encabezado de corrida
+// ---------------------------------------------------------------------------------------------
+function tempColor(d) {
+  // Solo se clasifica con los umbrales que reporta el propio disco; sin ellos, color neutro.
+  if (d.temp_c == null) return "var(--muted)";
+  if (d.temp_crit_c && d.temp_c >= d.temp_crit_c) return "var(--coral)";
+  if (d.temp_warn_c && d.temp_c >= d.temp_warn_c) return "var(--amber)";
+  return d.temp_warn_c ? "var(--jade-2)" : "var(--text)";
+}
+function recordTemps(st) {
+  const now = Date.now();
+  for (const d of st.disks || []) {
+    if (d.temp_c == null) continue;
+    const k = `${d.number}|${d.model}`;
+    const arr = (S.temps[k] = S.temps[k] || []);
+    if (!arr.length || now - arr[arr.length - 1].t > 1500) arr.push({ t: now, c: d.temp_c });
+    while (arr.length && now - arr[0].t > 10 * 60 * 1000) arr.shift();
+  }
+}
+function sparkSvg(samples, warn, crit) {
+  if (!samples || samples.length < 2) return `<svg viewBox="0 0 300 96" preserveAspectRatio="none" aria-hidden="true"><text x="150" y="52" text-anchor="middle" fill="var(--faint)" font-size="12">Reuniendo muestras</text></svg>`;
+  const t0 = samples[0].t, t1 = samples[samples.length - 1].t || t0 + 1;
+  const cs = samples.map((s) => s.c);
+  let lo = Math.min(...cs) - 3, hi = Math.max(...cs) + 3;
+  if (warn && warn < hi + 15 && warn > lo) hi = Math.max(hi, warn + 2);
+  const X = (t) => ((t - t0) / Math.max(1, t1 - t0)) * 300;
+  const Y = (c) => 90 - ((c - lo) / Math.max(1, hi - lo)) * 84;
+  const pts = samples.map((s) => `${X(s.t).toFixed(1)},${Y(s.c).toFixed(1)}`).join(" ");
+  const warnLine = warn && warn <= hi && warn >= lo ? `<line x1="0" x2="300" y1="${Y(warn).toFixed(1)}" y2="${Y(warn).toFixed(1)}" stroke="var(--amber)" stroke-dasharray="4 4" stroke-width="1"/>` : "";
+  return `<svg viewBox="0 0 300 96" preserveAspectRatio="none" aria-label="Temperatura de los últimos minutos">
+    <polygon points="0,96 ${pts} 300,96" fill="var(--jade)" opacity="0.14"/>
+    ${warnLine}
+    <polyline points="${pts}" fill="none" stroke="var(--jade-2)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  </svg>`;
+}
+function thermoHtml(d) {
+  if (d.temp_c == null) return "";
+  const s = S.temps[`${d.number}|${d.model}`] || [];
+  const cs = s.map((x) => x.c);
+  const avg = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : d.temp_c;
+  const mins = s.length > 1 ? Math.max(1, Math.round((s[s.length - 1].t - s[0].t) / 60000)) : 0;
+  const src = d.temp_source === "nvme" ? "sensor NVMe" : "Windows";
+  const thr = d.temp_warn_c ? `Aviso del fabricante: ${nf(d.temp_warn_c)} °C${d.temp_crit_c ? `, crítico ${nf(d.temp_crit_c)} °C` : ""}.` : "El disco no reporta umbrales de aviso.";
+  return `<div class="thermo">
+    <div><div class="muted" style="font-size:12.5px;margin-bottom:4px">Temperatura ${mins ? `de los últimos ${mins} min` : "de esta sesión"} (${src})</div>${sparkSvg(s, d.temp_warn_c, d.temp_crit_c)}<div class="faint" style="font-size:12px;margin-top:4px">${esc(thr)}</div></div>
+    <div><div class="muted" style="font-size:12.5px">Actual</div><div class="now num" style="color:${tempColor(d)}">${nf(d.temp_c)} °C</div>
+      <dl><div><dt>Mín.</dt><dd class="num">${nf(Math.min(...(cs.length ? cs : [d.temp_c])))}°</dd></div><div><dt>Media</dt><dd class="num">${nf(avg)}°</dd></div><div><dt>Máx.</dt><dd class="num">${nf(Math.max(...(cs.length ? cs : [d.temp_c])))}°</dd></div></dl></div>
+  </div>`;
+}
+function gaugeSvg(pct, color) {
+  const p = Math.max(0, Math.min(100, pct));
+  const a = Math.PI * (1 - p / 100);
+  const x = 90 + 76 * Math.cos(a), y = 92 - 76 * Math.sin(a);
+  return `<svg viewBox="0 0 180 104" aria-hidden="true"><path d="M14 92 A76 76 0 0 1 166 92" fill="none" stroke="var(--surface)" stroke-width="12" stroke-linecap="round"/>
+    ${p > 0 ? `<path d="M14 92 A76 76 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round"/>` : ""}</svg>`;
+}
+function runHeader(text) {
+  const lines = (text || "").split("\n");
+  const hdr = lines.find((l) => /===== NVMeForge v/.test(l));
+  if (!hdr) return null;
+  const m = /^\[(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(hdr);
+  const ver = (/NVMeForge v([^ ]+)/.exec(hdr) || [])[1] || "";
+  const when = m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : null;
+  const end = [...lines].reverse().find((l) => /\|\s*(❌|⚠|✔)/u.test(l));
+  let result = "sin terminar", cls = "";
+  if (end) {
+    const r = end.split("|").slice(1, 2).join("").trim();
+    result = r; cls = /❌/u.test(r) ? "e" : /⚠/u.test(r) ? "w" : "k";
+  }
+  return { when, ver, result, cls };
+}
+function fmtWhen(d) {
+  if (!d) return "fecha desconocida";
+  const today = new Date(); const y = new Date(Date.now() - 864e5);
+  const hm = d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === today.toDateString()) return `hoy a las ${hm}`;
+  if (d.toDateString() === y.toDateString()) return `ayer a las ${hm}`;
+  return `${d.toLocaleDateString("es-MX", { day: "numeric", month: "short" })}, ${hm}`;
+}
+function runHeaderHtml(text, isCurrent) {
+  const r = runHeader(text);
+  if (!r) return "";
+  const before = isCurrent && r.when && r.when.getTime() < S.openedAt - 60000 && !isRunning();
+  return `<div class="run-head">Corrida de <b>${esc(fmtWhen(r.when))}</b>, versión ${esc(r.ver)}${before ? ", anterior a abrir esta ventana" : ""}. Resultado: <span class="${r.cls}">${esc(r.result)}</span></div>`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Mapa de particiones a escala (la pieza central)
+// ---------------------------------------------------------------------------------------------
+function partColor(p, tint) {
+  if (p.kind === "data") return `data tint-${tint}`;
+  return p.kind || "other";
+}
+function mapHtml(d, tint, withFill) {
+  const total = d.bytes || (d.partitions || []).reduce((a, p) => Math.max(a, p.offset + p.bytes), 0);
+  if (!total) return `<div class="map"></div>`;
+  let html = "", cursor = 0;
+  const parts = [...(d.partitions || [])].sort((a, b) => a.offset - b.offset);
+  for (const p of parts) {
+    const gap = p.offset - cursor;
+    if (gap > total * 0.004) html += `<div class="seg free" style="flex:${gap} 0 0;background:transparent" title="Sin asignar: ${esc(fmtBytes(gap))}"></div>`;
+    const name = p.letter ? p.letter : (p.kind === "efi" ? "EFI" : p.kind === "recovery" ? "Rec." : "");
+    html += `<div class="seg ${partColor(p, tint)}" style="flex:${p.bytes} 0 0" title="${esc((p.letter ? p.letter + " " : "") + (KIND_NAMES[p.kind] || "Partición") + ": " + fmtBytes(p.bytes))}"><span>${esc(name)}</span></div>`;
+    cursor = p.offset + p.bytes;
+  }
+  if (total - cursor > total * 0.004) html += `<div class="seg free" style="flex:${total - cursor} 0 0;background:transparent" title="Sin asignar: ${esc(fmtBytes(total - cursor))}"></div>`;
+  return `<div class="map">${html}${withFill ? '<div class="map-fill" id="dstFill"></div>' : ""}</div>`;
+}
+function swatch(p, tint) {
+  const c = p.kind === "data" ? (tint === "src" ? "var(--brass)" : tint === "dst" ? "var(--jade)" : "#8FA89A")
+    : p.kind === "efi" ? "var(--steel)" : p.kind === "recovery" ? "var(--violet)" : p.kind === "msr" ? "var(--msr)" : "#5E6E66";
+  return `<span class="sw" style="background:${c}"></span>`;
+}
+const LOCK = '<span class="lock" title="BitLocker activo en el disco. Se clona descifrado desde la instantánea."><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>';
+function partsHtml(d, tint) {
+  const parts = [...(d.partitions || [])].sort((a, b) => a.offset - b.offset);
+  if (!parts.length) return `<p class="muted">Sin particiones${d.style === "RAW" ? " (disco vacío)" : ""}.</p>`;
+  return `<ul class="parts">${parts.map((p) => {
+    const used = p.fs_total_bytes && p.fs_free_bytes != null ? p.fs_total_bytes - p.fs_free_bytes : null;
+    const label = p.label || p.name || "";
+    const what = `<b>${esc(KIND_NAMES[p.kind] || "Partición")}</b>${label ? ` ${esc(label)}` : ""}${p.fs ? `, ${esc(p.fs)}` : ""}${p.bitlocker ? LOCK : ""}`;
+    const size = used != null ? `${esc(fmtBytes(used))} de ${esc(fmtBytes(p.bytes))}` : esc(fmtBytes(p.bytes));
+    return `<li>${swatch(p, tint)}<span class="letter">${esc(p.letter || "")}</span><span class="what" title="${esc(label)}">${what}</span><span class="num muted">${size}</span></li>`;
+  }).join("")}</ul>`;
+}
+function connHtml(d) {
+  if (!d.pcie) return esc(busLabel(d) || "—");
+  const p = d.pcie, cur = `PCIe ${p.cur_gen}.0 x${p.cur_width}`, max = `PCIe ${p.max_gen}.0 x${p.max_width}`;
+  const below = p.cur_gen < p.max_gen || p.cur_width < p.max_width;
+  return below ? `<span style="color:var(--amber)">${cur}</span> <span class="faint">(máx. ${max})</span>` : `${cur} <span class="faint">(su máximo)</span>`;
+}
+function cacheHtml(d) {
+  const w = d.write_cache;
+  if (!w || w.enabled == null) return NA;
+  if (!w.enabled) return '<span style="color:var(--amber)">Desactivada</span>';
+  return w.flush_off ? '<span style="color:var(--amber)">Activada, sin vaciado</span>' : "Activada";
+}
+// v3.0 (F10): diagnóstico del disco con datos reales; cada punto dice qué hacer.
+function diagHtml(d) {
+  const st = S.status, h = d.health, out = [];
+  const push = (state, title, detail) => out.push(`<li class="${state}"><span class="ic">${state === "pass" ? "✓" : state === "warn" ? "!" : "✕"}</span><div><b>${esc(title)}</b><small>${esc(detail)}</small></div></li>`);
+  if (h) {
+    const spareLow = h.spare_threshold_pct && h.spare_pct < h.spare_threshold_pct;
+    if (h.critical_warning || spareLow || h.media_errors > 0) push("fail", "El disco reporta un problema", `${h.critical_warning ? `Aviso crítico ${h.critical_warning}. ` : ""}${h.media_errors ? `${nf(h.media_errors)} errores de datos. ` : ""}${spareLow ? "Reserva por debajo del mínimo. " : ""}Respalda tus datos y considera cambiarlo.`);
+    else if (h.used_pct >= 90) push("warn", "Desgaste alto", `Ya usó ${nf(h.used_pct)} % de la vida que garantiza el fabricante. Sigue funcionando, pero conviene planear su cambio.`);
+    else push("pass", "Salud buena", `${nf(100 - h.used_pct)} % de vida restante, sin errores de datos y sin avisos críticos.`);
+    if (h.throttle_count_1 != null) {
+      const thr = (h.throttle_count_1 || 0) + (h.throttle_count_2 || 0);
+      const hot = (h.warn_temp_minutes || 0) + (h.crit_temp_minutes || 0);
+      const counts = d.nvme?.hctm !== false; // sin HCTM el disco no lleva la cuenta de frenadas
+      const mins = `${nf(h.warn_temp_minutes)} min sobre la temperatura de aviso y ${nf(h.crit_temp_minutes)} min en la crítica, desde que es nuevo`;
+      const tip = "Puede venir de una sola carga larga (por ejemplo, una clonación en un adaptador USB sin disipador). Para saber si pasa dentro de tu equipo, usa la prueba de Rendimiento: vigila la temperatura mientras mide.";
+      if (counts && thr) push("warn", `El disco registra ${nf(thr)} ${thr === 1 ? "frenada" : "frenadas"} por calor en su vida`, `${mins}. ${tip}`);
+      else if (hot) push("warn", "Ha pasado tiempo caliente", `${mins}. ${tip}`);
+      else push("pass", "Sin tiempo sobre la temperatura de aviso", counts ? "Y sin frenadas registradas por el control térmico del disco." : "Este disco no lleva la cuenta de frenadas por calor; solo la de minutos calientes.");
+    }
+  }
+  if (d.pcie) {
+    const p = d.pcie, below = p.cur_gen < p.max_gen || p.cur_width < p.max_width;
+    if (below) push("warn", `La conexión va por debajo de su máximo: PCIe ${p.cur_gen}.0 x${p.cur_width} de PCIe ${p.max_gen}.0 x${p.max_width}`, "Lo más común es que la ranura del equipo no dé más. Algunos equipos también bajan la conexión para ahorrar energía: si con el cargador conectado sigue igual, el límite es la ranura.");
+    else push("pass", `Conexión a su máximo: PCIe ${p.cur_gen}.0 x${p.cur_width}`, `Permite hasta unos ${nf(p.cur_mbs)} MB/s. La ranura no está limitando al disco.`);
+  } else if (d.bus === "USB") push("warn", "Conectado por USB", "La velocidad la limita el adaptador y el puerto, no el disco. Dentro del equipo rendirá más.");
+  if (d.trim === true && st?.os_trim === true) push("pass", "TRIM funcionando", "El disco lo acepta y Windows lo envía.");
+  else if (d.trim === true && st?.os_trim === false) push("warn", "Windows no envía TRIM", "El disco lo acepta pero Windows lo tiene apagado. En Terminal como administrador: fsutil behavior set DisableDeleteNotify 0");
+  else if (d.trim === false && d.bus !== "USB") push("warn", "El disco no acepta TRIM", "Con el tiempo la escritura se vuelve más lenta.");
+  const w = d.write_cache;
+  if (w && w.enabled === true && !w.flush_off) push("pass", "Caché de escritura activada", "Configuración correcta: rápida, y Windows vacía la caché cuando hace falta, que es lo seguro.");
+  else if (w && w.enabled === true && w.flush_off) push("warn", "Vaciado de caché desactivado", "Es un poco más rápido, pero un apagón o un cuelgue puede corromper archivos. En el Administrador de dispositivos, Directivas: desmarca \"Desactivar el vaciado de caché de escritura de Windows\".");
+  else if (w && w.enabled === false) push("warn", "Caché de escritura desactivada", "La escritura será más lenta. En el Administrador de dispositivos, Directivas: marca \"Habilitar caché de escritura en el dispositivo\".");
+  return out.length ? `<div class="diag"><h3>Diagnóstico</h3><ul class="checks">${out.join("")}</ul></div>` : "";
+}
+// v3.1: una foto de la salud por día (se guarda al abrir NVMeForge). Solo datos medidos.
+function healthHistHtml(d) {
+  if (!d.health || !d.serial) return "";
+  const ser = d.serial.replace(/^[\s.]+|[\s.]+$/g, ""); // el motor guarda la serie sin espacios ni puntos al borde
+  const rows = (S.healthHist || []).filter((r) => r.serial === ser.slice(0, 48)); // el motor guarda hasta 48 caracteres
+  if (!rows.length) return "";
+  const first = rows[0], last = rows[rows.length - 1];
+  const days = Math.round((new Date(last.date) - new Date(first.date)) / 86400000);
+  let trend;
+  if (days >= 1) {
+    const perDay = (last.written_bytes - first.written_bytes) / days;
+    const hrs = (last.power_on_hours - first.power_on_hours) / days;
+    trend = `En ${days} ${days === 1 ? "día" : "días"} escribiste ${esc(fmtBytes(last.written_bytes - first.written_bytes))}: unos <b>${esc(fmtBytes(perDay))} por día</b>, con ${nf(hrs, 1)} horas encendido por día. Vida usada: ${nf(first.used_pct)} % → ${nf(last.used_pct)} %.`;
+  } else trend = "Se guarda una foto de la salud por día, cada día que abres NVMeForge. A partir del segundo día aquí verás cuánto escribes por día.";
+  const tail = rows.slice(-7).reverse();
+  return `<div class="diag"><h3>Historial de salud</h3><p class="muted" style="font-size:13.5px;margin:0 0 8px">${trend}</p>
+    <div style="overflow-x:auto"><table class="t"><thead><tr><th>Día</th><th class="r">Vida usada</th><th class="r">Escritos</th><th class="r">Horas</th><th class="r">Temp.</th><th class="r">Min. calientes</th></tr></thead><tbody>
+    ${tail.map((r) => `<tr><td class="num">${esc(r.date)}</td><td class="r num">${nf(r.used_pct)} %</td><td class="r num">${esc(fmtBytes(r.written_bytes))}</td><td class="r num">${nf(r.power_on_hours)}</td><td class="r num">${nf(r.temp_c)} °C</td><td class="r num">${nf(r.warn_min + r.crit_min)}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+}
+function factsHtml(d) {
+  const serial = d.serial ? `<code>${esc(d.serial)}</code>` : d.serial_hidden_by_bridge ? '<span class="faint">Oculta por el adaptador</span>' : NA;
+  const temp = d.temp_c != null ? `<span style="color:${tempColor(d)}">${nf(d.temp_c)} °C</span>` : '<span class="faint">No disponible</span>';
+  return `<dl class="facts">
+    <div><dt>Capacidad</dt><dd class="num">${esc(fmtBytes(d.bytes) || "—")}</dd></div>
+    <div><dt>Conexión</dt><dd>${connHtml(d)}</dd></div>
+    <div><dt>Temperatura</dt><dd class="num">${temp}</dd></div>
+    <div><dt>Firmware</dt><dd>${d.firmware ? `<code>${esc(d.firmware)}</code>` : NA}</dd></div>
+    <div><dt>Tabla</dt><dd>${esc(d.style || "—")}</dd></div>
+    <div><dt>Estándar</dt><dd>${d.nvme ? `NVM Express ${esc(d.nvme.version)}` : NA}</dd></div>
+    <div><dt>TRIM</dt><dd>${d.trim == null ? NA : d.trim ? "Lo acepta" : '<span style="color:var(--amber)">No lo acepta</span>'}</dd></div>
+    <div><dt>Caché de escritura</dt><dd>${cacheHtml(d)}</dd></div>
+    <div style="grid-column:1/-1"><dt>Serie</dt><dd>${serial}</dd></div>
+  </dl>`;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Vista Clonar
+// ---------------------------------------------------------------------------------------------
+function srcDisk() { const st = S.status; return st?.disks?.find((d) => d.number === st.source_disk) || null; }
+// v2.7 (NVF-E038): el destino lo elige el usuario. Con un solo disco además del de Windows se preselecciona;
+// con varios (por ejemplo varios adaptadores USB) NVMeForge no adivina.
+function candidateDisks() { const st = S.status; return (st?.disks || []).filter((d) => st.source_disk != null && d.number !== st.source_disk); }
+function requiredBytes() { const st = S.status; return st?.required_target_bytes ?? st?.min_target_bytes ?? null; }
+function diskFits(d) { const need = requiredBytes(); return d?.bytes != null && need != null && d.bytes >= need; }
+function targetNumber() {
+  const st = S.status;
+  if (!st) return null;
+  if (st.clone_running && st.active_target_disk != null) return st.active_target_disk;
+  const c = candidateDisks();
+  if (S.targetSel != null && c.some((d) => d.number === S.targetSel)) return S.targetSel;
+  return st.target_disk ?? null;
+}
+function dstDisk() { const st = S.status; const n = targetNumber(); return n == null ? null : st?.disks?.find((d) => d.number === n) || null; }
+function renderDstPick() {
+  const st = S.status;
+  const panel = $("dstPickPanel");
+  const c = candidateDisks();
+  const show = !!st && c.length > 1 && !isRunning();
+  panel.hidden = !show;
+  if (!show) { S.dstPickSig = ""; return; }
+  const sel = targetNumber();
+  const sig = JSON.stringify([sel, requiredBytes(), st.clone_marker_disk, c.map((d) => [d.number, d.model, d.bytes, d.bus, d.serial])]);
+  if (sig === S.dstPickSig) return;   // no se redibuja cada segundo: el clic no se pierde
+  S.dstPickSig = sig;
+  $("dstPickNote").textContent = sel == null ? `${c.length} discos conectados además del de Windows. Elige uno; se borrará por completo.` : "Se borrará por completo el disco elegido.";
+  $("dstPick").innerHTML = c.map((d) => {
+    const fits = diskFits(d);
+    const id = d.serial ? `serie ${esc(d.serial)}` : d.serial_hidden_by_bridge ? "serie oculta por el adaptador" : "sin serie";
+    const why = !fits ? (d.bytes == null ? "No se pudo leer el tamaño" : `Muy chico: el clon necesita ${esc(fmtBytes(requiredBytes()) || "más espacio")}`) : st.clone_marker_disk === d.number ? "Ya tiene un clon terminado" : "";
+    return `<label class="${fits ? "" : "off"}"><input type="radio" name="tdisk" value="${d.number}" ${d.number === sel ? "checked" : ""} ${fits ? "" : "disabled"}><span><b>${esc(diskLabel(d))}</b><small>Disco ${d.number} · <b>${esc(fmtBytes(d.bytes) || "—")}</b> · ${esc(busLabel(d) || "—")} · ${id}</small>${why ? `<small>${why}</small>` : ""}</span></label>`;
+  }).join("");
+}
+
+function renderFlow() {
+  const st = S.status;
+  const src = srcDisk(), dst = dstDisk();
+  $("srcCard").innerHTML = src ? `
+    <div class="disk-role"><span><strong>Origen</strong>, disco ${src.number}</span><span>Windows en uso${cPartition(src)?.bitlocker ? LOCK : ""}</span></div>
+    <div class="disk-model">${esc(diskLabel(src))}</div>
+    ${factsHtml(src)}
+    ${mapHtml(src, "src", false)}
+    ${partsHtml(src, "src")}` : `<div class="empty-disk"><h2>No se encontró el disco de Windows</h2><p class="muted">Abre NVMeForge como administrador para leer los discos.</p></div>`;
+
+  if (dst && dst.number !== st.source_disk) {
+    $("dstCard").innerHTML = `
+      <div class="disk-role"><span><strong>Destino</strong>, disco ${dst.number}</span><span>${isRunning() ? "Recibiendo la copia" : isSuccess() ? "Clon terminado" : st.clone_marker_disk === dst.number ? "Ya tiene un clon terminado" : "Se borrará por completo"}</span></div>
+      <div class="disk-model">${esc(diskLabel(dst))}</div>
+      ${factsHtml(dst)}
+      ${mapHtml(dst, "dst", true)}
+      ${partsHtml(dst, "dst")}`;
+  } else {
+    const many = candidateDisks().length > 1;
+    $("dstCard").innerHTML = many ? `<div class="empty-disk">
+      <h2>Elige el disco destino</h2>
+      <p class="muted">Hay ${candidateDisks().length} discos conectados además del de Windows. Elige arriba en cuál clonar; NVMeForge no lo adivina.</p></div>` : `<div class="empty-disk">
+      <h2>Conecta el NVMe destino</h2>
+      <p class="muted">Ponlo en el adaptador USB y conéctalo. Aparece aquí solo, en unos segundos; no hace falta volver a escanear.</p>
+      ${requiredBytes() ? `<p class="faint">Debe medir al menos ${esc(fmtBytes(requiredBytes()))}: lo que ocupa C: más el arranque y la recuperación.</p>` : ""}</div>`;
+  }
+  const running = isRunning();
+  $("flow").classList.toggle("flowing", running && stageIndex() === 5);
+  $("chanWhat").textContent = running ? (isVerifying() ? "Releyendo el destino" : stageIndex() === 5 ? "Copiando" : "Preparando") : isSuccess() ? "Copiado y verificado" : "Origen a destino";
+  if (!running) {
+    const used = st?.c_used_bytes;
+    $("chanSpeed").innerHTML = isSuccess() ? '<span style="color:var(--jade-2)">Listo</span>' : used != null && dst ? `${esc(fmtBytes(used))}<small>a copiar</small>` : "&nbsp;";
+  }
+}
+
+function renderCloneState() {
+  const box = $("cloneState");
+  const last = (S.clones || [])[0];
+  if (!last || isRunning()) { box.hidden = true; return; }
+  box.hidden = false;
+  const ok = /^OK/.test(last.status);
+  const when = new Date(last.when.replace(" ", "T"));
+  const ch = S.changes;
+  let drift = "", driftCls = "", driftTxt = "";
+  if (!last.tracks_changes) { drift = "—"; driftTxt = "Este clon se hizo con una versión que no registraba el diario de cambios de C:."; }
+  else if (!ch) { drift = "…"; driftTxt = "Contando los cambios de C: desde el clon."; }
+  else if (ch.ok) {
+    drift = nf(ch.files) + (ch.truncated ? "+" : ""); driftCls = ch.files ? "drift" : "ok";
+    driftTxt = ch.files ? `archivos de C: cambiaron desde el clon (descargas, actualizaciones, archivos de Windows). El clon ya no es idéntico a C:; vuelve a clonar para incluirlos.` : "Ningún archivo de C: cambió desde el clon.";
+  } else {
+    drift = "—";
+    driftTxt = { admin: "Abre NVMeForge como administrador para contar los cambios de C: desde el clon.", demasiados_cambios: "Cambiaron tantos archivos que el diario de Windows ya no llega hasta el clon. Conviene volver a clonar.", diario_reiniciado: "El diario de cambios de C: se reinició; ya no se puede comparar con el clon.", diario_inactivo: "El diario de cambios de C: está desactivado." }[ch.reason] || "No se pudieron contar los cambios de C:.";
+  }
+  box.innerHTML = `
+    <div class="fig num ${ok ? "ok" : "drift"}">${ok ? "100 %" : "Aviso"}</div>
+    <p><b>${ok ? "Clonado y verificado" : "Clon terminado con advertencias"}</b><br>${esc(last.model)}, ${esc(fmtWhen(isNaN(when) ? null : when))}; ${esc(nf(last.copied_bytes / 1073741824, 1))} GiB copiados y releídos.</p>
+    <span class="sep"></span>
+    <div class="fig num ${driftCls}">${esc(drift)}</div>
+    <p>${esc(driftTxt)}</p>
+    ${last.tracks_changes ? '<button class="btn btn-small" id="btnRecount">Contar de nuevo</button>' : "<span></span>"}`;
+  const b = $("btnRecount");
+  if (b) b.onclick = async () => { S.changes = null; renderCloneState(); await loadChanges(true); renderCloneState(); };
+}
+
+function checksList() {
+  const st = S.status;
+  if (!st) return [];
+  const src = srcDisk(), dst = dstDisk();
+  const out = [];
+  const push = (state, title, detail, blocking) => out.push({ state, title, detail, blocking });
+  const nCand = candidateDisks().length;
+  push(dst ? "pass" : "fail", dst ? "Disco destino elegido" : nCand > 1 ? "Elige el disco destino" : "Disco destino conectado",
+    dst ? `Disco ${dst.number}: ${diskLabel(dst)}, ${fmtBytes(dst.bytes) || "tamaño no disponible"}` : nCand > 1 ? `Hay ${nCand} discos además del de Windows; elige en cuál clonar.` : "Conecta el NVMe destino al adaptador.", !dst);
+  if (dst) {
+    const isSrc = dst.number === st.source_disk;
+    push(!isSrc ? "pass" : "fail", "El destino no es el disco de Windows", !isSrc ? `Windows está en el disco ${st.source_disk}.` : "El disco destino contiene el Windows en uso.", isSrc);
+    push(dst.bus === "USB" ? "pass" : "warn", "El destino está en el adaptador USB", dst.bus === "USB" ? "Conectado por USB." : `Conectado por ${dst.bus || "un bus desconocido"}. Revisa que sea el disco correcto.`, false);
+    const need = requiredBytes();
+    const fits = diskFits(dst);
+    push(fits ? "pass" : "fail", "Capacidad suficiente", need == null ? "No se pudo medir C: para calcular el espacio necesario." : fits ? `${fmtBytes(dst.bytes)}; el clon necesita ${fmtBytes(need)} (C: mide ${fmtBytes(st.c_partition_bytes) || "—"}). El resto queda para Windows.` : `Mide ${fmtBytes(dst.bytes) || "—"} y el clon necesita ${fmtBytes(need)}: lo que ocupa C: más el arranque y la recuperación${st.extra_bytes ? " y las demás particiones" : ""}.`, !fits);
+    const marked = st.clone_marker_disk === dst.number;
+    push(marked ? "fail" : "pass", "No tiene un clon terminado", marked ? "Ese disco ya tiene un clon terminado y está protegido. Si ya lo probaste y quieres reclonarlo, usa \u201cQuiero reclonarlo\u201d en Qué va a pasar." : "No hay marca de clon terminado.", marked);
+  }
+  // NVF-E009 / NVF-E039: las letras S:, W:, R:, Z: e Y: que usa la clonación.
+  if (st.letters_plan !== undefined) {
+    // v2.9: el motor elige letras libres solo; una letra ocupada ya no bloquea.
+    const plan = typeof st.letters_plan === "string" ? st.letters_plan.split(",").map((x) => x.trim()).filter(Boolean) : null;
+    if (!plan || !plan.length) push("fail", "Letras que usa NVMeForge", "No hay 5 letras de unidad libres: expulsa algunas unidades USB o de red.", true);
+    else {
+      const ls = plan.map((x) => `${x}:`);
+      const list = ls.length > 1 ? `${ls.slice(0, -1).join(", ")} ${/^[YI]/i.test(plan[plan.length - 1]) ? "e" : "y"} ${ls[ls.length - 1]}` : ls[0];
+      const orphan = (Array.isArray(st.letters) ? st.letters : []).filter((l) => l.state === "orphan").map((l) => `${l.letter}:`);
+      const orphanTxt = orphan.length ? ` ${orphan.join(", ")} quedó de un disco que ya no existe; se quita al empezar.` : "";
+      push("pass", "Letras que usa NVMeForge", `Usará ${list} (letras libres; si alguna está ocupada elige otra).${orphanTxt}`, false);
+    }
+  } else if (Array.isArray(st.letters)) {
+    const tn = dst ? dst.number : null;
+    const bad = [], orphan = [];
+    for (const l of st.letters) {
+      if (l.state === "free") continue;
+      if (l.state === "orphan") { orphan.push(`${l.letter}:`); continue; }
+      if (l.state === "volume" && tn != null && l.disk === tn && l.letter !== "Z" && l.letter !== "Y") continue; // se libera al empezar
+      bad.push(l);
+    }
+    const who = (l) => {
+      if (l.disk == null) return "un dispositivo que Windows no identifica";
+      const d = st.disks.find((x) => x.number === l.disk);
+      return `el disco ${l.disk}${d ? ` (${diskLabel(d)})` : ""}`;
+    };
+    if (bad.length) push("fail", "Letras que usa NVMeForge", `${bad.map((l) => `${l.letter}: la usa ${who(l)}`).join("; ")}. Cámbiale la letra en Administración de discos.`, true);
+    else if (orphan.length) push("warn", "Letras que usa NVMeForge", `${orphan.join(", ")} quedó de un disco que ya no existe (en el Explorador sale sin tamaño). NVMeForge la quita al empezar; si Windows no lo deja, te dirá qué hacer.`, false);
+    else push("pass", "Letras que usa NVMeForge", "S:, W:, R:, Z: e Y: están libres o son del disco destino.", false);
+  }
+  // v2.8: clon de disco completo. Las particiones con letra (en uso) todavía no se copian.
+  const extra = extraParts();
+  if (extra) {
+    const raw = extra.filter((p) => p.copy === "raw"), skip = extra.filter((p) => p.copy !== "raw");
+    const rawBytes = st.extra_bytes ?? raw.reduce((a, p) => a + (p.bytes || 0), 0);
+    const all = `${skip.length ? "Se copian" : "Todas"}: ${copiedSummary(src, raw)}${raw.length ? ` (${joinY(raw.map(extraName))}; ${fmtBytes(rawBytes) || "—"} en total)` : ""}.`;
+    if (skip.length) {
+      const why = skip.map((p) => `${p.letter || `La partición ${p.number}`} (${fmtBytes(p.bytes) || "—"}) ${p.letter ? "tiene letra y está en uso" : "está en uso"}`).join("; ");
+      push("warn", "Particiones que se copian", `${all} ${why}: esta versión no ${skip.length > 1 ? "las" : "la"} copia; copia sus archivos aparte.`, false);
+    } else push("pass", "Particiones que se copian", all, false);
+  }
+  // NVF-E040: con distinto tamaño de sector lógico, NTFS no monta C: en el disco nuevo.
+  if (src && dst && dst.number !== st.source_disk && src.logical_sector_bytes && dst.logical_sector_bytes) {
+    const same = src.logical_sector_bytes === dst.logical_sector_bytes;
+    push(same ? "pass" : "fail", "Mismo tamaño de sector", same ? `Los dos discos usan sectores de ${src.logical_sector_bytes} bytes.` : `El origen usa sectores de ${src.logical_sector_bytes} bytes y el destino de ${dst.logical_sector_bytes}: Windows no podría abrir C: en el disco nuevo. Usa otro disco.`, !same);
+  }
+  push(st.is_admin ? "pass" : "fail", "Permisos de administrador", st.is_admin ? "Activos." : "Pulsa Pedir, abajo a la izquierda, y acepta el aviso de Windows.", !st.is_admin);
+  {
+    const onBattery = st.ac_online === false;
+    const low = onBattery && st.battery_pct != null && st.battery_pct < 60;
+    const txt = st.ac_online === true ? (st.battery_pct != null ? `Cargador conectado, batería al ${st.battery_pct} %.` : "Cargador conectado.")
+      : onBattery ? `En batería (${st.battery_pct ?? "nivel desconocido"} %). ${low ? "Por debajo del 60 %: conecta el cargador." : "Mejor conecta el cargador antes de clonar."}`
+      : st.has_battery ? "No se pudo leer el estado de la corriente." : "Equipo sin batería.";
+    push(low ? "fail" : onBattery ? "warn" : "pass", "Energía", txt, low);
+  }
+  if (st.c_free_bytes != null) {
+    const minFree = st.min_c_free_bytes || 10e9;
+    const okFree = st.c_free_bytes >= minFree;
+    push(okFree ? "pass" : "fail", "Espacio libre en C: para la instantánea", okFree ? `${fmtBytes(st.c_free_bytes)} libres.` : `Solo ${fmtBytes(st.c_free_bytes)} libres; se necesitan ${fmtBytes(minFree)}.`, !okFree);
+  }
+  if (src) {
+    const used = st.c_used_bytes;
+    push(used != null ? "pass" : "warn", "Datos a copiar", used != null ? `${fmtBytes(used)} usados en C:` : "No se pudo medir C:.", false);
+  }
+  push(!st.clone_running ? "pass" : "fail", "Sin otra clonación en curso", st.clone_running ? "Ya hay una clonación corriendo." : "Libre.", st.clone_running);
+  return out;
+}
+
+function renderIdle() {
+  const st = S.status;
+  const list = checksList();
+  $("checks").innerHTML = list.map((c) => `<li class="${c.state}"><span class="ic">${c.state === "pass" ? "✓" : c.state === "warn" ? "!" : "✕"}</span><div><b>${esc(c.title)}</b><small>${esc(c.detail)}</small></div></li>`).join("");
+  const blocking = list.filter((c) => c.blocking);
+  const warns = list.filter((c) => c.state === "warn");
+  $("checkSummary").textContent = list.length ? (blocking.length ? `${blocking.length} impide${blocking.length > 1 ? "n" : ""} clonar` : warns.length ? `${warns.length} aviso${warns.length > 1 ? "s" : ""}` : "Todo listo") : "";
+  const src = srcDisk(), dst = dstDisk();
+  const btn = $("btnStart");
+  if (st && src && dst) {
+    const last = S.benchHist.find((h) => h.disk === dst.number);
+    // v3.0.1: el tiempo real de un clon anterior manda; la prueba rápida de solo lectura sale inflada en
+    // discos vacíos y solo se usa si no hay ningún clon con duración registrada.
+    const prevClone = (S.clones || []).find((c) => c.secs > 0 && c.copied_bytes > 0 && /^OK|^ADVERTENCIAS/.test(c.status || ""));
+    let est = "";
+    if (prevClone && st.c_used_bytes) {
+      const bytes = st.c_used_bytes + (st.extra_bytes || 0);
+      const basis = prevClone.basis_bytes || prevClone.copied_bytes; // basis_bytes se mide igual que "bytes"
+      const secs = prevClone.secs * (bytes / basis);
+      est = `<p class="muted">Tiempo aproximado: ${fmtDur(secs)}, según tu clon del ${esc(prevClone.when.slice(0, 10))} (${nf(basis / 1e9)} GB en ${fmtDur(prevClone.secs)}). Cambia si el disco destino o el adaptador son otros.</p>`;
+    } else if (last && st.c_used_bytes) {
+      const copy = (st.c_used_bytes + (st.extra_bytes || 0)) / (last.seq_mbs * 1e6);
+      est = `<p class="muted">Tiempo aproximado: ${fmtDur(copy * 2 + 240)}, según tu última medición de ${nf(last.seq_mbs)} MB/s en ese disco (copia, relectura completa y pasos finales).</p>`;
+    }
+    const extra = extraParts();
+    if (extra) {
+      const raw = extra.filter((p) => p.copy === "raw"), skip = extra.filter((p) => p.copy !== "raw");
+      const skipTxt = skip.length ? ` ${joinY(skip.map((p) => p.letter || `La partición ${p.number}`))} ${skip.length > 1 ? "están" : "está"} en uso y esta versión no ${skip.length > 1 ? "las" : "la"} copia.` : "";
+      $("actionText").innerHTML = `
+      <p>Se borra el <b>disco ${dst.number}</b> (${esc(diskLabel(dst))}) y se copian ${skip.length ? "las particiones" : "todas las particiones"} del disco ${src.number} (${esc(copiedSummary(src, raw))}), con C: tomada de una instantánea congelada.${esc(skipTxt)}</p>
+      <p class="muted">C: crece hasta llenar el disco y las demás quedan al final con su mismo tamaño. Se relee el 100 % de lo escrito y se instala el arranque UEFI y WinRE. El disco de origen solo se lee.</p>${est}`;
+    } else $("actionText").innerHTML = `
+      <p>Se borra el <b>disco ${dst.number}</b> (${esc(diskLabel(dst))}) y se copia el Windows del disco ${src.number} desde una instantánea congelada de C:.</p>
+      <p class="muted">Después se relee el 100 % de lo escrito, se amplía C: a todo el disco y se instala el arranque UEFI y WinRE. El disco de origen solo se lee.</p>${est}`;
+    btn.textContent = `Clonar en el disco ${dst.number}`;
+  } else {
+    $("actionText").innerHTML = `<p class="muted">${dst ? "Falta información del disco de origen." : "Conecta el disco destino para ver qué va a pasar."}</p>`;
+    btn.textContent = "Clonar";
+  }
+  btn.disabled = !st || blocking.length > 0 || S.startRequested;
+  // v2.9.2: unlock a protected (already cloned) target with two clicks, no browser dialogs.
+  let rb = $("btnReclone");
+  const markedNow = !!(st && dst && st.clone_marker_disk === dst.number);
+  if (markedNow && !rb) {
+    rb = document.createElement("button");
+    rb.id = "btnReclone"; rb.className = "btn btn-small"; rb.style.marginTop = "10px";
+    $("startWhy").insertAdjacentElement("afterend", rb);
+    rb.addEventListener("click", reclone);
+  }
+  if (rb) { rb.hidden = !markedNow; if (!S.recloneArmed) rb.textContent = "Quiero reclonarlo"; }
+  $("startWhy").textContent = blocking.length ? `Antes de clonar: ${blocking.map((c) => c.title.toLowerCase()).join("; ")}.` : "";
+}
+
+// ---- progreso del motor ----
+function stageText() { return S.progress?.stage || ""; }
+function stageIndex() { const m = /Etapa\s+(\d)\/7/.exec(stageText()); return m ? Number(m[1]) : 0; }
+function isVerifying() { return /Verificación completa de la copia/.test(stageText()); }
+function errCode() { const m = /^\s*[❌⚠]\s*\[(NVF-E\d+)\]/u.exec(stageText()); return m ? m[1] : null; }
+function isError() { return /^\s*❌/u.test(stageText()); }
+function isWarnDone() { return /^\s*⚠/u.test(stageText()) && S.progress?.done; }
+function isSuccess() { return /^\s*✔/u.test(stageText()) && S.progress?.done; }
+function isRunning() {
+  const p = S.progress;
+  if (S.status?.clone_running) return true;
+  if (!p || p.done) return false;
+  return stageIndex() > 0 || /Motor de Clonación|UAC/u.test(p.stage || "");
+}
+function parseDetail(detail) {
+  const r = {};
+  let m = /Copiados\s+([\d.,]+)\s*\/\s*([\d.,]+)\s*GiB/.exec(detail) || /Releídos\s+([\d.,]+)\s*\/\s*([\d.,]+)\s*GiB/.exec(detail);
+  if (m) { r.done = parseFloat(m[1].replace(/,/g, "")); r.total = parseFloat(m[2].replace(/,/g, "")); }
+  m = /ETA:\s*(\d+)m\s*(\d+)s/.exec(detail);
+  if (m) r.eta = Number(m[1]) * 60 + Number(m[2]);
+  return r;
+}
+
+function renderSteps() {
+  const st = S.status, dst = dstDisk();
+  const idx = stageIndex();
+  const running = isRunning();
+  const state = { connect: "", review: "", clone: "", verify: "", remove: "" };
+  if (dst) state.connect = "done"; else state.connect = "now";
+  if (dst && !running && !S.progress?.done) state.review = "now";
+  if (running) { state.review = "done"; if (idx === 5 && isVerifying()) { state.clone = "done"; state.verify = "now"; } else if (idx >= 6) { state.clone = "done"; state.verify = "done"; } else state.clone = "now"; if (idx >= 6) state.verify = "now"; }
+  if (isSuccess() || isWarnDone()) { state.connect = state.review = state.clone = state.verify = "done"; state.remove = "now"; }
+  if (isError() && S.progress?.done) {
+    const at = idx >= 6 ? "verify" : idx >= 4 ? "clone" : "review";
+    state.review = at === "review" ? "fail" : "done";
+    if (at !== "review") state[at] = "fail";
+    if (at === "verify") state.clone = "done";
+  }
+  document.querySelectorAll("#steps li").forEach((li) => { li.className = state[li.dataset.step] || ""; });
+}
+
+function renderRun() {
+  const p = S.progress || {};
+  const running = isRunning();
+  const finished = !!p.done && (isError() || isSuccess() || isWarnDone());
+  $("idleArea").hidden = running || (finished && !isError() && !!stageIndex());
+  $("runArea").hidden = !running;
+  const chip = $("stateChip");
+  chip.className = "state-chip " + (running ? "st-run" : isError() ? "st-err" : isWarnDone() ? "st-warn" : isSuccess() ? "st-ok" : "");
+  $("stateText").textContent = running ? `Clonando, ${nf(p.percent || 0)} %` : isError() ? "Se detuvo" : isWarnDone() ? "Terminó con avisos" : isSuccess() ? "Clon verificado" : S.status ? (dstDisk() ? "Listo para revisar" : "Esperando destino") : "Leyendo discos";
+  $("navCloneBadge").textContent = running ? `${nf(p.percent || 0)} %` : "";
+
+  if (running) {
+    // Inicio real de la corrida: la última cabecera "===== NVMeForge vX clone run" del registro.
+    const hdrs = [...(S.events || "").matchAll(/^\[(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})[^\]]*\] ===== NVMeForge v[^ ]+ clone run/gm)];
+    if (hdrs.length) { const m = hdrs[hdrs.length - 1]; S.runStartedAt = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime(); }
+    else if (!S.runStartedAt) S.runStartedAt = Date.now();
+    $("runPct").innerHTML = `${nf(Math.floor(p.percent || 0))}<small>%</small>`;
+    $("runBar").style.width = `${Math.min(100, p.percent || 0)}%`;
+    $("runStage").textContent = (p.stage || "").replace(/^Etapa\s+\d\/7:\s*/, "");
+    $("runDetail").textContent = p.detail || "";
+    const d = parseDetail(p.detail || "");
+    const ct = Number(p.copy_total) || 0;
+    if (ct > 0) {
+      // v2.9: bytes exactos del motor (GB decimales, como fmtBytes).
+      const gb = (b) => nf(b / 1e9, b / 1e9 >= 100 ? 0 : 1);
+      const vd = Number(p.verify_done) || 0, cd = Math.min(ct, Number(p.copy_done) || 0);
+      const [lbl, val] = vd >= ct ? ["Copiado y releído", `${gb(ct)} GB`]
+        : vd > 0 && (cd >= ct || isVerifying()) ? ["Releído", `${gb(vd)} de ${gb(ct)} GB`]
+        : ["Copiado", `${gb(cd)} de ${gb(ct)} GB`];
+      $("mCopiedLbl").textContent = lbl; $("mCopied").textContent = val;
+    } else $("mCopiedLbl").textContent = "Copiado", $("mCopied").textContent = d.total ? `${nf(d.done, 1)} / ${nf(d.total, 0)} GiB` : "—";
+    $("mSpeed").textContent = p.mb_s > 0 ? `${nf(p.mb_s, 0)} MB/s` : "—";
+    $("chanSpeed").innerHTML = p.mb_s > 0 && stageIndex() === 5 ? `${nf(p.mb_s, 0)}<small>MB/s</small>` : "&nbsp;";
+    const eta = p.eta_sec != null && isFinite(p.eta_sec) ? Number(p.eta_sec) : d.eta;
+    $("mEta").textContent = eta != null ? fmtDur(eta) : "—";
+    $("mElapsed").textContent = fmtDur((Date.now() - S.runStartedAt) / 1000);
+    const idx = stageIndex();
+    document.querySelectorAll("#stages li").forEach((li, i) => { li.className = i + 1 < idx ? "done" : i + 1 === idx ? "now" : ""; });
+    const fill = $("dstFill");
+    if (fill) {
+      // v2.9: copy_done/copy_total; motor viejo: copia 20 -> 80 % de la barra global.
+      const copyFrac = idx > 5 ? 1 : ct > 0 ? Math.min(1, Math.max(0, (Number(p.copy_done) || 0) / ct)) : idx === 5 ? Math.min(1, Math.max(0, ((p.percent || 0) - 20) / 60)) : 0;
+      fill.style.width = `${copyFrac * 100}%`;
+    }
+  } else {
+    S.runStartedAt = null;
+  }
+  renderResult();
+}
+
+// ---- F9: asistente post-clon ("Qué sigue") ----
+const AFTER_STEPS = [
+  "Apaga el equipo por completo (no suspender ni hibernar) y desconecta el cargador.",
+  "Ten a mano la clave de recuperación de BitLocker del disco viejo (aka.ms/myrecoverykey, en tu cuenta Microsoft) por si algún día vuelves a ponerlo.",
+  "Cambia el NVMe viejo por el nuevo.",
+  "Enciende. Si dice que no encuentra arranque: presiona F9 (HP; en otras marcas F12/F11/Esc) y elige \"Windows Boot Manager\".",
+  "Revisa en el Explorador que C: muestre el tamaño nuevo (un disco de 2 TB aparece como ~1.81 TB: es la forma de contar de Windows).",
+  "Vuelve a activar BitLocker en el disco nuevo (Configuración > Privacidad y seguridad > Cifrado de dispositivo, o BitLocker en el Panel de control).",
+  "Guarda el disco viejo sin formatear una o dos semanas: es tu respaldo.",
+];
+const afterMem = {};   // respaldo en memoria si localStorage no está disponible
+function afterKey() {
+  // La corrida se identifica por la hora de su cabecera en el registro; si no, por el último clon o la última corrida archivada.
+  const hdrs = [...(S.events || "").matchAll(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})[^\]]*\] ===== NVMeForge v[^ ]+ clone run/gm)];
+  const id = hdrs.length ? hdrs[hdrs.length - 1][1] : (S.clones?.[0]?.when || S.runs?.[0] || "actual");
+  return "nvf-after-" + String(id).replace(/[^\w-]+/g, "_");
+}
+function afterGet(key) {
+  if (afterMem[key]) return afterMem[key];
+  let v = [];
+  try { const raw = localStorage.getItem(key); if (raw) v = JSON.parse(raw); } catch (e) { }
+  afterMem[key] = Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n >= 0 && n < AFTER_STEPS.length) : [];
+  return afterMem[key];
+}
+function afterSet(key, list) {
+  afterMem[key] = list;
+  try { localStorage.setItem(key, JSON.stringify(list)); } catch (e) { }
+}
+function afterHtml(warn) {
+  const key = afterKey(), done = new Set(afterGet(key)), n = done.size, total = AFTER_STEPS.length;
+  return `<section class="after" aria-labelledby="afterTitle" data-key="${esc(key)}">
+    <div class="after-head"><h3 id="afterTitle">Qué sigue</h3><span class="after-count" aria-live="polite"><b>${n} de ${total}</b> listos</span></div>
+    <div class="after-bar" aria-hidden="true"><i style="width:${(n / total) * 100}%"></i></div>
+    ${warn ? `<p class="note after-warn"><b style="color:var(--amber)">Primero revisa las advertencias.</b> ${esc(warn.todo)}</p>` : ""}
+    <ol>${AFTER_STEPS.map((t, i) => `<li class="${done.has(i) ? "done" : ""}"><label><input type="checkbox" data-after="${i}"${done.has(i) ? " checked" : ""}><span>${esc(t)}</span></label></li>`).join("")}</ol>
+  </section>`;
+}
+$("resultArea").addEventListener("change", (e) => {
+  const i = e.target?.dataset?.after;
+  if (i == null) return;
+  const key = e.target.closest(".after")?.dataset.key || afterKey();
+  const set = new Set(afterGet(key));
+  if (e.target.checked) set.add(Number(i)); else set.delete(Number(i));
+  afterSet(key, [...set].sort((a, b) => a - b));
+  renderResult();
+});
+
+// ---- F9: aviso al terminar (título, sonido y notificación del sistema) ----
+let soundOn = true;
+try { soundOn = localStorage.getItem("nvf-sound") !== "off"; } catch (e) { }
+let audioCtx = null;
+function audio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => { });
+    return audioCtx;
+  } catch (e) { return null; }
+}
+function chime(kind) {
+  if (!soundOn) return;
+  const ctx = audio();
+  if (!ctx) return;
+  try {
+    // Dos tonos suaves: subiendo si terminó bien, bajando si se detuvo.
+    const notes = kind === "err" ? [659.25, 493.88] : kind === "warn" ? [587.33, 659.25] : [659.25, 987.77];
+    const t0 = ctx.currentTime + 0.05;
+    notes.forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain(), t = t0 + i * 0.22;
+      o.type = "sine"; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.22, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      o.connect(g).connect(ctx.destination);
+      o.start(t); o.stop(t + 0.65);
+    });
+  } catch (e) { }
+}
+function renderSound() {
+  const b = $("btnSound");
+  b.setAttribute("aria-pressed", String(soundOn));
+  b.className = `status-line sound-toggle ${soundOn ? "ok" : ""}`;
+  $("soundText").textContent = `Sonido al terminar: ${soundOn ? "sí" : "no"}`;
+  b.querySelector(".on").style.display = soundOn ? "" : "none";
+  b.querySelector(".off").style.display = soundOn ? "none" : "";
+  b.title = soundOn ? "Sonará al terminar la clonación. Clic para silenciar." : "Silenciado. Clic para que suene al terminar.";
+}
+$("btnSound").addEventListener("click", () => {
+  soundOn = !soundOn;
+  try { localStorage.setItem("nvf-sound", soundOn ? "on" : "off"); } catch (e) { }
+  renderSound();
+  if (soundOn) chime("ok");   // muestra cómo suena (y desbloquea el audio con este clic)
+});
+renderSound();
+let sawRunning = false;     // solo avisa si esta ventana vio la corrida en curso
+function watchFinish() {
+  if (isRunning()) {
+    if (!sawRunning && document.title !== "NVMeForge") document.title = "NVMeForge";
+    sawRunning = true;
+    return;
+  }
+  const p = S.progress;
+  if (!sawRunning || !p?.done || !(isSuccess() || isWarnDone() || isError())) return;
+  sawRunning = false;
+  const kind = isSuccess() ? "ok" : isWarnDone() ? "warn" : "err";
+  const head = kind === "ok" ? "Clon terminado" : kind === "warn" ? "Clon terminado con avisos" : "La clonación se detuvo";
+  document.title = `${kind === "ok" ? "✔" : kind === "warn" ? "⚠" : "❌"} ${head} — NVMeForge`;
+  chime(kind);
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      const body = kind === "ok" ? "Copiado y verificado. Abre NVMeForge para ver qué sigue."
+        : kind === "warn" ? "Revisa las advertencias en NVMeForge antes de instalar el disco."
+        : (GUIDE[errCode()]?.t || "Abre NVMeForge para ver qué pasó.");
+      const n = new Notification(head, { body, tag: "nvf-clone-done" });
+      n.onclick = () => { try { window.focus(); n.close(); } catch (e) { } };
+    }
+  } catch (e) { }
+}
+
+function renderResult() {
+  const box = $("resultArea");
+  const p = S.progress || {};
+  if (!p.done || !(isError() || isSuccess() || isWarnDone())) { box.hidden = true; return; }
+  box.hidden = false;
+  const ev = S.events || "";
+  const full = /VERIFY_FULL segmentos=(\d+)\/(\d+) bytes=(\d+)\/(\d+) segmentos_con_diferencias=(\d+)/.exec(ev);
+  if (isSuccess() || isWarnDone()) {
+    box.className = `panel result ${isSuccess() ? "ok" : "warn"}`;
+    const g = isWarnDone() ? GUIDE["NVF-E019"] : null;
+    // F9: solo se reescribe si cambió algo (si no, cada sondeo borraría el foco de las casillas).
+    const html = `<div>
+      <h2>${isSuccess() ? "Clon terminado y verificado" : "Clon terminado con advertencias"}</h2>
+      <p class="muted">${esc(p.detail || "")}</p>
+      <div class="explain">
+        <div><h3>Verificación</h3><p>${full ? `${nf(Number(full[3]) / 1073741824, 1)} GiB releídos en ${full[1]} tramos; ${full[5] === "0" ? "sin diferencias" : `${full[5]} con diferencias`}.` : "Ver eventos."}</p></div>
+        <div><h3>Siguiente disco</h3><p>Retíralo del adaptador. Para clonar otro, conecta el siguiente NVMe: aparece solo.</p></div>
+        <div><h3>Para arrancar desde él</h3><p>Apaga el equipo, ponlo en la ranura M.2 y enciende solo con ese disco.</p></div>
+      </div>
+      ${afterHtml(g)}
+    </div>`;
+    if (box.dataset.sig !== html) { box.innerHTML = html; box.dataset.sig = html; }
+    return;
+  }
+  delete box.dataset.sig;
+  const code = errCode();
+  const g = GUIDE[code] || { t: "La clonación se detuvo", touched: "Revisa los eventos para ver hasta dónde llegó.", todo: "Revisa el registro y vuelve a intentarlo." };
+  box.className = "panel result err";
+  box.innerHTML = `<div>
+    <h2>${esc(g.t)}${code ? ` <span class="faint" style="font-size:14px">${esc(code)}</span>` : ""}</h2>
+    <p class="muted">${esc((p.stage || "").replace(/^\s*❌\s*\[NVF-E\d+\]\s*/u, ""))}. ${esc(p.detail || "")}</p>
+    <div class="explain" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <div><h3>Qué se tocó</h3><p>${esc(g.touched)}</p></div>
+      <div><h3>Qué hacer</h3><p>${esc(g.todo)}</p></div>
+    </div>
+  </div>
+  <div><button class="btn" onclick="S.startRequested=false;S.progress.done=false;renderAll()">Volver a revisar</button></div>`;
+}
+
+function compactEvents(text) {
+  // Vista de eventos: el comando completo solo estorba; queda en "Ver registro completo".
+  return text.split("\n").map((ln) => ln.replace(/^(\[[^\]]+\]\s*CMD\s+\S+\s+rc=\S+(?:\s*\[[^\]]*\])?)\s*::.*$/, "$1")).join("\n");
+}
+function colorizeLog(text) {
+  return esc(text).split("\n").map((ln) => {
+    const m = /^(\[[^\]]+\])(.*)$/.exec(ln);
+    const body = m ? m[2] : ln;
+    const ts = m ? `<span class="t">${m[1]}</span>` : "";
+    const cls = /❌|ERROR|FALL|diferencias=[1-9]|ADVERTENCIA|bloqueado=NO/.test(body) ? (/❌|IO_ERROR|FALL|diferencias=[1-9]|bloqueado=NO/.test(body) ? "e" : "w")
+      : /⚠|AVISO|WARN|tolerado=[1-9]/.test(body) ? "w"
+      : /✔|-> OK|rc=0|diferencias=0|bloqueado=si|FLUSH destino OK|MARCA clon/.test(body) ? "k" : "";
+    return cls ? `${ts}<span class="${cls}">${body}</span>` : ts + body;
+  }).join("\n");
+}
+function renderEvents() {
+  const el = $("events");
+  const text = S.rawMode ? S.rawLog || "" : compactEvents(S.events || "");
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
+  const empty = !(S.events || "").trim();
+  el.hidden = empty;
+  el.innerHTML = text.trim() ? colorizeLog(text.trim()) : "";
+  if (atBottom) el.scrollTop = el.scrollHeight;
+  if (empty) {
+    const prev = runHeader(S.prevRunText);
+    $("eventsHead").innerHTML = `<div class="run-head">No hay corridas en esta sesión.${prev ? ` La anterior fue ${esc(fmtWhen(prev.when))} (versión ${esc(prev.ver)}): <span class="${prev.cls}">${esc(prev.result)}</span>. <button class="linkish" id="btnSeePrev">Verla en Registro</button>` : ""}</div>`;
+    const bp = $("btnSeePrev");
+    if (bp) bp.onclick = async () => { S.logRun = (S.runs || [])[0] || ""; document.querySelector('.nav button[data-view="log"]').click(); await loadLogRun(); renderEvents(); };
+  } else $("eventsHead").innerHTML = runHeaderHtml(S.events, true);
+  $("btnRaw").hidden = empty;
+  $("btnCopyEvents").hidden = empty;
+  $("btnRaw").textContent = S.rawMode ? "Ver solo eventos" : "Ver registro completo";
+  const lf = $("logFeed");
+  const t2 = S.logRun ? (S.logRaw ? S.logRunText || "" : compactEvents(S.logRunText || "")) : S.logRaw ? S.rawLog || "" : compactEvents(S.events || "");
+  lf.innerHTML = t2.trim() ? colorizeLog(t2.trim()) : (S.logRun ? "Sin registro." : "No hay corridas en esta sesión. Elige una anterior en la lista.");
+  $("logHead").innerHTML = runHeaderHtml(S.logRun ? S.logRunText : S.events, !S.logRun);
+  $("btnLogMode").textContent = S.logRaw ? "Ver solo eventos" : "Ver registro completo";
+  const sel = $("runSel");
+  const want = ['<option value="">Corrida actual</option>'].concat((S.runs || []).map((n) => {
+    const m = /clone_run_(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})(\d{2})/.exec(n);
+    const label = m ? fmtWhen(new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : n;
+    return `<option value="${esc(n)}">${esc(label)}</option>`;
+  })).join("");
+  if (sel.dataset.sig !== want) { sel.innerHTML = want; sel.dataset.sig = want; }
+  sel.value = S.logRun;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Vista Discos
+// ---------------------------------------------------------------------------------------------
+function healthHtml(d) {
+  const h = d.health;
+  const thermo = thermoHtml(d);
+  if (!h) {
+    const why = d.bus === "USB" ? "El adaptador USB no deja leer la salud del NVMe." : "Este disco no responde a la consulta de salud NVMe.";
+    return `${thermo}<p class="note" style="margin-top:${thermo ? 12 : 0}px">Salud: no disponible. ${esc(why)}${d.temp_c == null ? " La temperatura tampoco." : ""}</p>`;
+  }
+  const warn = h.critical_warning !== 0;
+  const life = Math.max(0, 100 - h.used_pct);
+  const spareLow = h.spare_threshold_pct && h.spare_pct < h.spare_threshold_pct;
+  const state = warn || spareLow || h.media_errors > 0 ? "Revisar" : h.used_pct >= 90 ? "Desgastado" : "Bueno";
+  const color = state === "Bueno" ? "var(--jade)" : state === "Desgastado" ? "var(--amber)" : "var(--coral)";
+  return `${thermo}<div class="lifebox" style="margin-top:14px">
+    <div class="gauge">${gaugeSvg(life, color)}<div class="v num" style="color:${color}">${nf(life)} %</div><div class="l">Vida restante (${esc(state)})</div></div>
+    <dl class="health">
+    <div><dt>Vida usada</dt><dd class="num">${nf(h.used_pct)} %</dd></div>
+    <div><dt>Reserva disponible</dt><dd class="num">${nf(h.spare_pct)} %</dd></div>
+    <div><dt>Avisos críticos</dt><dd class="${warn ? "bad" : ""}">${warn ? `Sí (código ${h.critical_warning})` : "Ninguno"}</dd></div>
+    <div><dt>Datos escritos</dt><dd class="num">${esc(fmtBytes(h.data_written_bytes))}</dd></div>
+    <div><dt>Datos leídos</dt><dd class="num">${esc(fmtBytes(h.data_read_bytes))}</dd></div>
+    <div><dt>Horas encendido</dt><dd class="num">${nf(h.power_on_hours)}</dd></div>
+    <div><dt>Errores de medio</dt><dd class="num ${h.media_errors ? "bad" : ""}">${nf(h.media_errors)}</dd></div>
+    <div><dt>Ciclos de encendido</dt><dd class="num">${nf(h.power_cycles)}</dd></div>
+    <div><dt>Apagados inseguros</dt><dd class="num">${nf(h.unsafe_shutdowns)}</dd></div>
+  </dl></div>${thermalHtml(d)}`;
+}
+function thermalHtml(d) {
+  const h = d.health;
+  if (!h || h.throttle_count_1 == null) return "";
+  const thr = (h.throttle_count_1 || 0) + (h.throttle_count_2 || 0);
+  const secs = (h.throttle_secs_1 || 0) + (h.throttle_secs_2 || 0);
+  const warnAt = d.temp_warn_c ?? d.nvme?.wctemp_c, critAt = d.temp_crit_c ?? d.nvme?.cctemp_c;
+  const sens = (h.sensors_c || []).map((c, i) => (c == null ? "" : `Sensor ${i + 1}: ${nf(c)} °C`)).filter(Boolean).join(" · ");
+  const counts = d.nvme?.hctm !== false;
+  return `<dl class="health" style="margin-top:10px">
+    <div><dt>Frenadas por calor registradas</dt><dd class="num ${thr ? "warn-t" : ""}">${counts ? nf(thr) : '<span class="faint">No las cuenta</span>'}</dd></div>
+    <div><dt>Tiempo frenado registrado</dt><dd class="num">${counts ? fmtDur(secs) : '<span class="faint">—</span>'}</dd></div>
+    <div><dt>Minutos sobre aviso${warnAt ? ` (${nf(warnAt)} °C)` : ""}</dt><dd class="num ${h.warn_temp_minutes ? "warn-t" : ""}">${nf(h.warn_temp_minutes)}</dd></div>
+    <div><dt>Minutos en crítica${critAt ? ` (${nf(critAt)} °C)` : ""}</dt><dd class="num ${h.crit_temp_minutes ? "bad" : ""}">${nf(h.crit_temp_minutes)}</dd></div>
+  </dl>${sens ? `<p class="faint" style="font-size:12.5px;margin-top:8px">${esc(sens)}</p>` : ""}`;
+}
+function renderDisks() {
+  const st = S.status;
+  const el = $("diskList");
+  if (!st) { el.innerHTML = `<div class="panel muted">Leyendo discos.</div>`; return; }
+  if (!st.disks.length) { el.innerHTML = `<div class="panel"><h2>No se pudieron leer los discos</h2><p class="muted">Abre NVMeForge como administrador.</p></div>`; return; }
+  el.innerHTML = st.disks.map((d) => {
+    const tn = targetNumber();
+    const role = d.number === st.source_disk ? "src" : d.number === tn ? "dst" : "any";
+    const tags = [
+      d.number === st.source_disk ? '<span class="tag src">Windows en uso (origen)</span>' : "",
+      d.number === tn && d.number !== st.source_disk ? '<span class="tag dst">Destino de clonación</span>' : "",
+      d.removable ? '<span class="tag">Extraíble</span>' : "",
+    ].join("");
+    return `<article class="panel">
+      <div class="panel-head"><div><div class="muted" style="font-size:13px">Disco ${d.number}${d.vendor ? `, ${esc(d.vendor)}` : ""}</div><h2>${esc(diskLabel(d))}</h2></div><div class="tags">${tags}</div></div>
+      ${factsHtml(d)}
+      <div style="margin:16px 0 8px">${mapHtml(d, role, false)}</div>
+      ${partsHtml(d, role)}
+      <div style="margin-top:16px">${healthHtml(d)}</div>
+      ${diagHtml(d)}
+      ${healthHistHtml(d)}
+    </article>`;
+  }).join("");
+  $("navDiskBadge").textContent = String(st.disks.length);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Vista Rendimiento
+// ---------------------------------------------------------------------------------------------
+const SUITE_TESTS = ["SEQ1M Q8T1", "SEQ1M Q1T1", "RND4K Q32T1", "RND4K Q1T1"];
+// Espacio libre necesario: archivo de prueba + 2 GiB de margen (igual que el motor).
+function suiteMinFree() { return ((+$("suiteSize").value || 1) + 2) * 1073741824; }
+function benchDisk() {
+  const st = S.status;
+  const v = document.querySelector('input[name="bdisk"]:checked')?.value;
+  return (st?.disks || []).find((d) => String(d.number) === v) || null;
+}
+// Unidades con letra del disco elegido donde cabe el archivo de prueba. C: primero.
+function suiteLetters(d) {
+  return (d?.partitions || []).filter((p) => p.letter && p.fs && p.fs_free_bytes != null)
+    .sort((a, b) => (a.letter === "C:" ? -1 : b.letter === "C:" ? 1 : a.letter.localeCompare(b.letter)));
+}
+function suiteEtaSec(passes) { return 8 * passes * 5 + 7 * 3 + 12 + (+$("suiteSize").value || 1) * 2; } // llenar el archivo: ~2 s por GiB en un NVMe; más en USB
+function suiteRunning() { return !!S.suite?.running; }
+function renderBenchPick() {
+  const st = S.status;
+  const box = $("benchPick");
+  if (!st || !st.disks.length) { box.innerHTML = `<p class="muted">No hay discos que medir.</p>`; $("btnBench").disabled = true; $("btnSuite").disabled = true; return; }
+  const prev = document.querySelector('input[name="bdisk"]:checked')?.value;
+  const running = suiteRunning();
+  const want = running ? String(S.suite.disk) : prev != null && st.disks.some((d) => String(d.number) === prev) ? prev : String(st.source_disk ?? st.disks[0].number);
+  const html = st.disks.map((d) => `<label><input type="radio" name="bdisk" value="${d.number}" ${String(d.number) === want ? "checked" : ""} ${running ? "disabled" : ""}><span><b>${esc(diskLabel(d))}</b><small>Disco ${d.number}, ${esc(fmtBytes(d.bytes) || "—")}, ${esc(linkLabel(d) || "—")}</small></span></label>`).join("");
+  if (box.dataset.sig !== html) { box.innerHTML = html; box.dataset.sig = html; }
+  const d = benchDisk();
+  // Unidad del archivo de prueba
+  const sel = $("suiteLetter");
+  const letters = suiteLetters(d);
+  const prevL = running ? S.suite.letter : sel.value;
+  const opts = letters.length ? letters.map((p) => `<option value="${esc(p.letter[0])}" ${p.fs_free_bytes < suiteMinFree() ? "disabled" : ""}>${esc(p.letter)} ${esc(p.label || "")} (${esc(fmtBytes(p.fs_free_bytes))} libres)</option>`).join("") : `<option value="">Sin unidades con letra</option>`;
+  if (sel.dataset.sig !== opts) { sel.innerHTML = opts; sel.dataset.sig = opts; }
+  const okLetters = letters.filter((p) => p.fs_free_bytes >= suiteMinFree()).map((p) => p.letter[0]);
+  if (prevL && okLetters.includes(prevL[0])) sel.value = prevL[0]; else if (okLetters.length) sel.value = okLetters[0];
+  sel.disabled = running || !okLetters.length;
+  $("suitePasses").disabled = running;
+  $("suiteSize").disabled = running;
+  $("btnSuiteCopy").hidden = !(S.suite && S.suite.phase === "done");
+  const passes = +$("suitePasses").value || 3;
+  $("suiteEta").textContent = running ? "" : `Tarda unos ${fmtDur(suiteEtaSec(passes))}${+$("suiteSize").value > 1 ? ", más el llenado del archivo en discos lentos" : ""}`;
+  let note, can = !!d && okLetters.length > 0 && !!st.is_admin && !st.clone_running && !st.bench_running;
+  if (!d) note = "Elige un disco.";
+  else if (!letters.length) note = "Este disco no tiene unidades con letra (por ejemplo, un destino recién conectado). Para medirlo sin escribir nada, usa la prueba rápida de solo lectura de abajo.";
+  else if (!okLetters.length) note = `Ninguna unidad de este disco tiene ${nf(suiteMinFree() / 1073741824)} GiB libres para el archivo de prueba.`;
+  else note = `Se crea un archivo oculto de ${$("suiteSize").value} GiB en ${sel.value}:\\NVMeForge-prueba.tmp con datos aleatorios, se lee y se escribe, y se borra al terminar (Windows lo borra aunque NVMeForge se cierre). El resto del disco no se toca.`;
+  if (st.clone_running) note = "Disponible cuando termine la clonación.";
+  else if (!st.is_admin) note = "Necesita permisos de administrador (botón Pedir).";
+  $("suiteNote").textContent = note;
+  $("btnSuite").disabled = !can || running || S.suiteStarting;
+  $("btnSuiteCancel").hidden = !running;
+  $("btnBench").disabled = S.benchBusy || !!st.clone_running || !st.is_admin || running || !!st.bench_running || !d;
+  $("benchMsg").textContent = S.benchBusy ? $("benchMsg").textContent : st.clone_running ? "Disponible cuando termine la clonación." : !st.is_admin ? "Necesita permisos de administrador." : "";
+  renderSuite();
+  renderPowerChecks();
+}
+function linkLabel(d) {
+  if (d?.pcie) return `PCIe ${d.pcie.cur_gen}.0 x${d.pcie.cur_width}`;
+  return busLabel(d);
+}
+function suiteStepFrac(x) {
+  if (!x || x.phase === "idle") return 0;
+  if (x.phase === "done") return 1;
+  const per = 8 * x.passes;
+  const prep = x.file_bytes ? Math.min(1, x.prep_done / x.file_bytes) : 0;
+  const prepShare = Math.min(0.3, 0.03 * (x.file_bytes / 1073741824)); // 1 GiB ≈ 3 %, 16 GiB ≈ 30 % (llenarlo tarda)
+  if (x.phase === "prep") return prepShare * prep;
+  const w = x.phase === "write" || (x.phase === "pause" && x.write.some((c) => c));
+  const base = (w ? 4 * x.passes : 0) + x.test * x.passes + (x.phase === "pause" ? x.passes : Math.max(0, x.pass - 1));
+  return prepShare + (1 - prepShare) * Math.min(1, base / per);
+}
+function cellHtml(c, live, isNow, maxRef) {
+  if (isNow && live != null) {
+    const pct = maxRef ? Math.min(100, (live / maxRef) * 100) : 0;
+    return `<div class="cell now"><div class="fill" style="width:${pct}%"></div><div class="v num">${nf(live, live < 100 ? 2 : 0)}</div><div class="s">midiendo…</div></div>`;
+  }
+  if (!c) return `<div class="cell empty ${isNow ? "now" : ""}"><div class="v num">—</div><div class="s">&nbsp;</div></div>`;
+  const pct = maxRef ? Math.min(100, (c.mbs / maxRef) * 100) : 0;
+  return `<div class="cell"><div class="fill" style="width:${pct}%"></div><div class="v num">${nf(c.mbs, c.mbs < 100 ? 2 : 0)}</div><div class="s">${nf(c.iops)} IOPS · ${nf(c.lat_us, c.lat_us < 100 ? 1 : 0)} µs</div></div>`;
+}
+function renderSuite() {
+  const x = S.suite;
+  const grid = $("suiteGrid");
+  const has = x && x.phase !== "idle";
+  const d = has ? (S.status?.disks || []).find((k) => k.number === x.disk) : benchDisk();
+  const ref = d?.pcie?.cur_mbs || Math.max(1, ...(has ? [...x.read, ...x.write].filter(Boolean).map((c) => c.mbs) : [1]));
+  const nowRead = x?.phase === "read", nowWrite = x?.phase === "write";
+  let html = `<div></div><div class="hd">Lectura (MB/s)</div><div class="hd">Escritura (MB/s)</div>`;
+  SUITE_TESTS.forEach((t, i) => {
+    const [a, b] = t.split(" ");
+    html += `<div class="lbl">${a}<br>${b}</div>`;
+    html += cellHtml(has ? x.read[i] : null, nowRead && x.test === i ? x.live_mbs : null, nowRead && x.test === i, ref);
+    html += cellHtml(has ? x.write[i] : null, nowWrite && x.test === i ? x.live_mbs : null, nowWrite && x.test === i, ref);
+  });
+  grid.innerHTML = html;
+  const running = suiteRunning();
+  $("suiteBar").hidden = !running;
+  $("suiteBar").querySelector("i").style.width = `${(suiteStepFrac(x) * 100).toFixed(1)}%`;
+  const live = $("suiteLive");
+  live.hidden = !has;
+  if (has) {
+    const thr = x.throttle_events;
+    const tColor = x.temp_c == null ? "" : d && d.temp_warn_c && x.temp_c >= d.temp_warn_c ? "var(--coral)" : x.temp_c >= 70 ? "var(--amber)" : "var(--jade-2)";
+    live.innerHTML = [
+      `<span>Unidad <b>${esc(x.letter)}</b></span>`,
+      `<span>Temperatura <b style="color:${tColor}">${x.temp_c != null ? nf(x.temp_c) + " °C" : "no disponible"}</b>${x.temp_max_c != null ? ` (inicio ${nf(x.temp_start_c)} °C, máx. ${nf(x.temp_max_c)} °C)` : ""}</span>`,
+      `<span>Frenadas registradas en esta prueba <b style="color:${thr ? "var(--amber)" : "var(--jade-2)"}">${thr == null || d?.nvme?.hctm === false ? "no disponible" : nf(thr)}</b></span>`,
+      `<span>Tiempo <b>${fmtDur(Math.round(x.elapsed_ms / 1000))}</b></span>`,
+      x.on_battery ? `<span style="color:var(--amber)">Con batería: los resultados salen más bajos</span>` : "",
+    ].join("");
+  }
+  $("suiteMsg").textContent = has ? x.message : "";
+  renderVerdict();
+}
+// Veredicto: datos reales de esta medición contra la conexión real del disco.
+function renderVerdict() {
+  const x = S.suite;
+  const panel = $("suiteVerdictPanel");
+  if (!x || x.phase !== "done") { panel.hidden = true; return; }
+  const d = (S.status?.disks || []).find((k) => k.number === x.disk);
+  const out = [];
+  const push = (state, title, detail) => out.push(`<li class="${state}"><span class="ic">${state === "pass" ? "✓" : state === "warn" ? "!" : "✕"}</span><div><b>${esc(title)}</b><small>${esc(detail)}</small></div></li>`);
+  const seq = x.read[0]?.mbs, seqW = x.write[0]?.mbs;
+  if (d?.pcie?.cur_mbs && seq) {
+    const pct = (seq / d.pcie.cur_mbs) * 100;
+    const link = `PCIe ${d.pcie.cur_gen}.0 x${d.pcie.cur_width}`;
+    if (pct >= 80) push("pass", `Lectura máxima: ${nf(pct)} % de lo que permite la conexión`, `${nf(seq)} MB/s en ${link} (límite teórico ${nf(d.pcie.cur_mbs)} MB/s). Un disco al tope suele quedar entre 85 y 95 %, el resto se va en el propio protocolo.`);
+    else if (pct >= 50) push("warn", `Lectura máxima: ${nf(pct)} % de lo que permite la conexión`, `${nf(seq)} MB/s en ${link}. Puede ser el límite del propio disco (muchos discos sin DRAM llegan a 5,000 MB/s en PCIe 4.0) o un ajuste de energía: revisa la lista de ajustes de abajo.`);
+    else push("warn", `Lectura máxima baja: ${nf(pct)} % de la conexión`, `${nf(seq)} MB/s en ${link}. Revisa los ajustes de energía de abajo, el cargador y la temperatura, y repite la prueba.`);
+  } else if (seq) push("pass", `Lectura máxima: ${nf(seq)} MB/s`, d?.bus === "USB" ? "El disco está en un adaptador USB: el límite lo pone el adaptador y el puerto (unos 1,000 MB/s en USB 10 Gbps)." : "Windows no reporta la conexión PCIe de este disco, así que no se puede comparar contra su límite.");
+  if (seqW && seq) push("pass", `Escritura máxima: ${nf(seqW)} MB/s`, `${nf((seqW / seq) * 100)} % de su lectura. En discos NVMe es normal que la escritura quede algo por debajo.`);
+  const thr = x.throttle_events, hotMin = x.hot_minutes;
+  const warnAt = d?.temp_warn_c ?? d?.nvme?.wctemp_c;
+  const counts = d?.nvme?.hctm !== false;
+  const overWarn = warnAt != null && x.temp_max_c != null && x.temp_max_c >= warnAt;
+  if (x.temp_max_c == null && thr == null) push("warn", "Temperatura no disponible", d?.bus === "USB" ? "El adaptador USB no deja leer el sensor del disco." : "Este disco no reporta su temperatura.");
+  else if ((counts && thr > 0) || hotMin > 0 || overWarn) push("warn", "Se calentó de más durante la prueba", `Llegó a ${nf(x.temp_max_c)} °C${warnAt ? ` (aviso del fabricante: ${nf(warnAt)} °C)` : ""}${counts && thr ? `, con ${nf(thr)} ${thr === 1 ? "frenada registrada" : "frenadas registradas"} por calor` : ""}. En cargas largas (compilar, copiar modelos grandes) perderá velocidad. Una almohadilla térmica o un disipador delgado, si cabe en el equipo, lo evita.`);
+  else push("pass", `Temperatura bajo control: máximo ${nf(x.temp_max_c)} °C`, `${warnAt ? `Por debajo del aviso del fabricante (${nf(warnAt)} °C)` : "Sin llegar a temperatura de aviso"}${counts && thr === 0 ? " y sin frenadas registradas por el control térmico del disco" : ""}.`);
+  const q1 = x.read[3];
+  if (q1) push(q1.lat_us <= 120 ? "pass" : "warn", `Archivos pequeños de uno en uno: ${nf(q1.mbs, 2)} MB/s (${nf(q1.lat_us)} µs por lectura)`, q1.lat_us <= 120 ? "Es lo que más se nota al abrir programas y compilar. Buen tiempo de respuesta." : "En esta prueba suelen influir tanto el procesador y el ahorro de energía como el disco. Con cargador, el modo Mejor rendimiento y PCI Express sin ahorro, normalmente sube.");
+  if (x.on_battery) push("warn", "Medido con batería", "Windows limita el disco y el procesador con batería. Conecta el cargador y repite para ver el máximo.");
+  $("suiteVerdict").innerHTML = out.join("");
+  $("suiteVerdictWhen").textContent = `${diskLabel(d) || "Disco " + x.disk}, unidad ${x.letter}`;
+  panel.hidden = false;
+}
+const ASPM_NAMES = ["Desactivado", "Ahorro moderado", "Ahorro máximo"];
+function renderPowerChecks() {
+  const st = S.status;
+  const el = $("powerChecks");
+  if (!st) { el.innerHTML = ""; return; }
+  const out = [];
+  const push = (state, title, detail) => out.push(`<li class="${state}"><span class="ic">${state === "pass" ? "✓" : state === "warn" ? "!" : "✕"}</span><div><b>${esc(title)}</b><small>${esc(detail)}</small></div></li>`);
+  if (st.ac_online === false) push("warn", "Con batería", "Con batería Windows baja la velocidad del disco y del procesador. Mide siempre con el cargador conectado.");
+  else if (st.ac_online === true) push("pass", "Con cargador", "Las mediciones salen al máximo que permite el equipo.");
+  const pc = st.power_cfg || {};
+  const mode = { rendimiento: "Mejor rendimiento", mejor: "Mejor rendimiento (intermedio)", equilibrado: "Equilibrado", eficiencia: "Mejor eficiencia energética" }[pc.mode];
+  if (pc.mode === "plan_alto" || pc.mode === "plan_maximo") push("pass", `Plan de energía: ${pc.mode === "plan_alto" ? "Alto rendimiento" : "Máximo rendimiento"}`, "Es un plan que da toda la velocidad.");
+  else if (mode) push(pc.mode === "rendimiento" ? "pass" : "warn", `Modo de energía: ${mode}`, pc.mode === "rendimiento" ? "Es el modo que da más velocidad." : "Para medir el máximo: Configuración > Sistema > Energía y batería > Modo de energía > Mejor rendimiento.");
+  if (pc.aspm_ac != null) {
+    const ac = ASPM_NAMES[pc.aspm_ac], dc = pc.aspm_dc != null ? ASPM_NAMES[pc.aspm_dc] : null;
+    push(pc.aspm_ac === 0 ? "pass" : "warn", `Ahorro de energía de PCI Express con cargador: ${ac}`, (pc.aspm_ac === 0 ? "La conexión del disco no se duerme entre peticiones." : "La conexión del disco se duerme entre peticiones y tarda en despertar: baja sobre todo la prueba RND4K Q1T1. Para cambiarlo: Panel de control > Opciones de energía > Cambiar la configuración del plan > Cambiar configuración avanzada > PCI Express > Administración de energía del estado de vínculo > Con corriente alterna: Desactivado.") + (dc ? ` Con batería: ${dc}.` : ""));
+  }
+  if (st.os_trim === false) push("warn", "Windows tiene el TRIM desactivado", "Sin TRIM el disco se vuelve más lento con el tiempo. Se activa en Terminal como administrador con: fsutil behavior set DisableDeleteNotify 0");
+  else if (st.os_trim === true) push("pass", "Windows envía TRIM a los discos", "Mantiene la velocidad de escritura con el tiempo. La optimización semanal de Windows lo repite.");
+  el.innerHTML = out.join("") || `<li class="warn"><span class="ic">!</span><div><b>No se pudieron leer los ajustes</b><small>Windows no respondió a la consulta.</small></div></li>`;
+}
+function renderBenchHist() {
+  const tb = $("benchHist").querySelector("tbody");
+  tb.innerHTML = S.benchHist.length ? S.benchHist.map((h) => `<tr><td class="num">${esc(h.when)}</td><td>${esc(h.model)} <span class="faint">(disco ${h.disk})</span></td><td class="r num">${nf(h.seq_mbs)} MB/s</td><td class="r num">${nf(h.iops)} IOPS</td><td class="r num">${nf(h.lat_us)} µs</td></tr>`).join("")
+    : `<tr><td colspan="5" class="muted">Todavía no hay mediciones.</td></tr>`;
+  const t2 = $("suiteHist").querySelector("tbody");
+  const f = (v) => nf(v, v < 100 ? 1 : 0);
+  t2.innerHTML = (S.suiteHist || []).length ? S.suiteHist.map((h) => `<tr><td class="num">${esc(h.when)}${h.on_battery ? ' <span class="tag">batería</span>' : ""}</td><td>${esc(h.model)} <span class="faint">(${esc(h.letter)})</span></td>${[0, 1, 2, 3].map((i) => `<td class="r num">${f(h.read[i])} / ${f(h.write[i])}</td>`).join("")}<td class="r num">${h.temp_max_c != null ? nf(h.temp_max_c) + " °C" : "—"}</td><td class="r num">${h.throttle_events != null ? nf(h.throttle_events) : "—"}</td><td class="r num">${nf((h.size_mib || 1024) / 1024)} GiB</td></tr>`).join("")
+    : `<tr><td colspan="9" class="muted">Todavía no hay mediciones.</td></tr>`;
+}
+async function loadSuite() { try { S.suite = await api("/api/suite"); } catch (e) { } }
+async function loadHealthHist() { try { S.healthHist = await api("/api/health-history"); } catch (e) { S.healthHist = []; } }
+async function loadSuiteHist() { try { S.suiteHist = await api("/api/suite-history"); } catch (e) { S.suiteHist = []; } renderBenchHist(); }
+async function runSuite() {
+  const d = benchDisk();
+  const letter = $("suiteLetter").value;
+  if (!d || !letter || S.suiteStarting) return;
+  S.suiteStarting = true;
+  $("btnSuite").disabled = true;
+  try {
+    const r = await api(`/api/suite-start?disk=${d.number}&letter=${encodeURIComponent(letter)}&passes=${encodeURIComponent($("suitePasses").value)}&size_gib=${encodeURIComponent($("suiteSize").value)}`, { method: "POST" });
+    if (!r.ok) toast(r.message || "No se pudo iniciar la prueba.", "warn");
+    await loadSuite();
+  } catch (e) { toast("No se pudo contactar al motor de NVMeForge.", "warn"); }
+  S.suiteStarting = false;
+  renderBenchPick();
+}
+// Texto para pegar en un chat, foro o reseña: solo los datos medidos.
+function suiteText() {
+  const x = S.suite;
+  if (!x || x.phase !== "done") return "";
+  const d = (S.status?.disks || []).find((k) => k.number === x.disk);
+  const n2 = (v) => (v == null ? "—" : nf(v, 2));
+  const pad = (t, w) => String(t).padStart(w);
+  const lines = [
+    `NVMeForge ${S.status?.version || ""} — Prueba de rendimiento`,
+    `Disco: ${d ? diskLabel(d) : "disco " + x.disk}${d?.pcie ? ` (PCIe ${d.pcie.cur_gen}.0 x${d.pcie.cur_width})` : d?.bus ? ` (${d.bus})` : ""}${d?.firmware ? `, firmware ${d.firmware}` : ""}`,
+    `Unidad ${x.letter}, archivo de ${nf(x.file_bytes / 1073741824)} GiB, ${x.passes} ${x.passes === 1 ? "pasada" : "pasadas"} de ${x.pass_secs} s`,
+    "",
+    `${"".padEnd(13)}${pad("Lectura", 12)}${pad("Escritura", 12)}   MB/s`,
+    ...SUITE_TESTS.map((t, i) => `${t.padEnd(13)}${pad(n2(x.read[i]?.mbs), 12)}${pad(n2(x.write[i]?.mbs), 12)}`),
+    "",
+    `Temperatura: ${x.temp_start_c != null ? `inicio ${x.temp_start_c} °C, máx. ${x.temp_max_c} °C` : "no disponible"}`,
+    `Energía: ${x.on_battery ? "batería" : "cargador"}`,
+    `Medido: ${new Date(x.ended_ms || Date.now()).toLocaleString("es-MX")}`,
+  ];
+  return lines.join("\n");
+}
+async function cancelSuite() {
+  try { await api("/api/suite-cancel", { method: "POST" }); } catch (e) { }
+  $("suiteMsg").textContent = "Cancelando; el archivo temporal se borra en cuanto termine la petición en curso.";
+}
+async function runBench() {
+  const d = benchDisk();
+  if (!d || S.benchBusy) return;
+  S.benchBusy = true;
+  $("btnBench").disabled = true;
+  $("benchIndet").hidden = false;
+  $("benchMsg").textContent = "Midiendo; tarda unos 5 a 10 segundos.";
+  try {
+    const r = await api(`/api/bench?disk=${encodeURIComponent(d.number)}`, { method: "POST" });
+    if (!r.ok) { $("benchMsg").textContent = r.message || "No se pudo medir."; }
+    else {
+      $("benchOut").hidden = false;
+      $("bSeq").innerHTML = `${nf(r.seq_read_mbs)} <small>MB/s</small>`;
+      $("bIops").innerHTML = `${nf(r.rand_read_iops)} <small>IOPS</small>`;
+      $("bLat").innerHTML = `${nf(r.rand_read_lat_us)} <small>µs</small>`;
+      const prev = S.benchHist.find((x) => x.disk === r.disk && x.model === r.model);
+      const delta = prev ? ` Contra la medición anterior: ${r.seq_read_mbs >= prev.seq_mbs ? "+" : ""}${nf(((r.seq_read_mbs - prev.seq_mbs) / prev.seq_mbs) * 100, 1)} % en secuencial.` : "";
+      $("benchMsg").textContent = `${r.model}: ${nf(r.seq_bytes / 1073741824, 0)} GiB leídos en ${nf(r.seq_secs, 1)} s.${delta}`;
+      await loadBenchHist();
+    }
+  } catch (e) { $("benchMsg").textContent = "No se pudo contactar al motor de NVMeForge."; }
+  S.benchBusy = false;
+  $("benchIndet").hidden = true;
+  renderBenchPick();
+}
+
+// ---------------------------------------------------------------------------------------------
+// Vista Equipo
+// ---------------------------------------------------------------------------------------------
+function row(k, v) { return `<tr><td class="muted" style="width:42%">${esc(k)}</td><td>${v == null || v === "" ? NA : v}</td></tr>`; }
+function renderMachine() {
+  const sy = S.system, st = S.status;
+  if (sy) {
+    const os = sy.os_build ? `${sy.os_build >= 22000 ? "Windows 11" : "Windows 10"}, compilación ${sy.os_build}` : null;
+    $("sysTable").querySelector("tbody").innerHTML = [
+      row("Fabricante", esc(sy.manufacturer)), row("Modelo", esc(sy.product)),
+      row("Placa base", sy.board ? esc(`${sy.board_vendor ? sy.board_vendor + " " : ""}${sy.board}`) : null),
+      row("BIOS / UEFI", sy.bios_version ? esc(`${sy.bios_version}${sy.bios_date ? `, ${sy.bios_date}` : ""}`) : null),
+      row("Procesador", esc(sy.cpu)),
+      row("Núcleos e hilos", sy.cores ? `${sy.cores} núcleos, ${sy.threads ?? "—"} hilos` : null),
+      row("Memoria", sy.ram_total_bytes ? esc(fmtGiB(sy.ram_total_bytes)) + ' <span class="faint">utilizable por Windows</span>' : null),
+      row("Sistema operativo", esc(os)),
+    ].join("");
+    const mods = sy.memory_modules || [];
+    const totalMb = mods.reduce((a, m) => a + m.size_mb, 0);
+    $("ramTotal").textContent = mods.length ? `${mods.length} módulo${mods.length > 1 ? "s" : ""}, ${nf(totalMb / 1024)} GB instalados` : "";
+    $("ramTable").querySelector("tbody").innerHTML = mods.length ? mods.map((m) => `<tr><td>${esc(m.slot || "—")}</td><td class="r num">${nf(m.size_mb / 1024)} GB</td><td>${esc(m.type || "—")}</td><td class="r num">${m.configured_mts || m.speed_mts ? `${nf(m.configured_mts || m.speed_mts)} MT/s` : "—"}</td><td>${esc(m.manufacturer || "—")}</td><td><code>${esc(m.part || "—")}</code></td></tr>`).join("")
+      : `<tr><td colspan="6" class="muted">El firmware no reporta los módulos.</td></tr>`;
+  }
+  if (st) {
+    $("powTable").querySelector("tbody").innerHTML = [
+      row("Corriente", st.ac_online === true ? "Conectado al cargador" : st.ac_online === false ? '<span style="color:var(--amber)">En batería</span>' : null),
+      row("Batería", st.battery_pct != null ? `${st.battery_pct} %${st.battery_charging ? ", cargando" : ""}` : st.has_battery ? null : "El equipo no tiene batería"),
+      row("Permisos de administrador", st.is_admin ? "Activos" : '<span style="color:var(--amber)">No activos</span>'),
+      row("Versión de NVMeForge", esc(st.version)),
+      row("Registro", "<code>%TEMP%\\NVMeForge\\logs</code>"),
+    ].join("");
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Estado global y sondeo
+// ---------------------------------------------------------------------------------------------
+function renderShell() {
+  const st = S.status;
+  if (!st) return;
+  $("brandVer").textContent = `versión ${st.version}`;
+  const al = $("adminLine");
+  al.className = `status-line ${st.is_admin ? "ok" : "warn"}`;
+  $("adminText").textContent = st.is_admin ? "Administrador" : "Sin permisos de admin";
+  $("btnElevate").hidden = !!st.is_admin;
+  const pl = $("powerLine");
+  pl.className = `status-line ${st.ac_online !== false ? "ok" : "warn"}`;
+  $("powerText").textContent = st.ac_online === true ? (st.battery_pct != null ? `Cargador, ${st.battery_pct} %` : "Cargador") : st.ac_online === false ? `Batería, ${st.battery_pct ?? "?"} %` : st.has_battery ? "Energía desconocida" : "Sin batería";
+}
+function renderAll() {
+  renderShell();
+  renderCloneState();
+  renderDstPick();
+  renderFlow();
+  renderIdle();
+  renderSteps();
+  renderRun();
+  renderEvents();
+  renderDisks();
+  renderBenchPick();
+  renderMachine();
+}
+
+function diskKeySet(st) { return new Map((st?.disks || []).map((d) => [`${d.number}|${d.model}|${d.bytes}`, d])); }
+async function pollStatus(withSystem = false) {
+  try {
+    const st = await api(`/api/status${withSystem ? "?system=1" : ""}`);
+    if (st.system) S.system = st.system;
+    const keys = diskKeySet(st);
+    if (S.diskKeys) {
+      for (const [k, d] of keys) if (!S.diskKeys.has(k)) toast(`Disco conectado: ${diskLabel(d)} (disco ${d.number}).`);
+      for (const [k, d] of S.diskKeys) if (!keys.has(k)) toast(`Disco retirado: ${diskLabel(d)}.`, "warn");
+    }
+    S.diskKeys = keys;
+    S.status = st;
+    recordTemps(st);
+  } catch (e) { /* el motor puede estar reiniciándose tras pedir permisos */ }
+}
+async function pollProgress() {
+  try {
+    const wasRunning = isRunning();
+    S.progress = await api("/api/progress");
+    if (S.progress.done || isRunning()) S.startRequested = false;
+    if (wasRunning && !isRunning()) { await pollEvents(); await pollStatus(); await loadClones(); await loadChanges(true); await loadRuns(); }
+  } catch (e) { }
+}
+async function pollEvents() {
+  try { S.events = await api("/api/run-summary"); } catch (e) { }
+  if (S.rawMode || S.logRaw) { try { S.rawLog = await api("/api/log"); } catch (e) { } }
+}
+async function loadClones() { try { S.clones = await api("/api/clones"); } catch (e) { } }
+async function loadChanges(force = false) {
+  const last = (S.clones || [])[0];
+  if (!last || !last.tracks_changes) return;
+  if (!force && Date.now() - S.changesAt < 60000) return;
+  S.changesAt = Date.now();
+  try { S.changes = await api("/api/changes"); } catch (e) { }
+}
+async function loadRuns() {
+  try { S.runs = await api("/api/runs"); } catch (e) { S.runs = []; }
+  if (S.runs.length && !S.prevRunText) { try { S.prevRunText = await api(`/api/run-summary?run=${encodeURIComponent(S.runs[0])}`); } catch (e) { } }
+}
+async function loadLogRun() {
+  if (!S.logRun) { S.logRunText = ""; return; }
+  try { S.logRunText = await api(`/api/${S.logRaw ? "log" : "run-summary"}?run=${encodeURIComponent(S.logRun)}`); } catch (e) { S.logRunText = ""; }
+}
+async function loadBenchHist() { try { S.benchHist = await api("/api/bench-history"); } catch (e) { S.benchHist = []; } renderBenchHist(); }
+
+let tick = 0;
+async function loop() {
+  tick++;
+  const running = isRunning();
+  await pollProgress();
+  if (suiteRunning() || tick % 10 === 1) {
+    const was = suiteRunning();
+    await loadSuite();
+    if (was && !suiteRunning()) { await loadSuiteHist(); await pollStatus(); toast(S.suite?.phase === "done" ? "Prueba de rendimiento terminada." : S.suite?.message || "La prueba terminó.", S.suite?.phase === "done" ? "" : "warn"); }
+  }
+  if (tick % (running ? 20 : 5) === 1) await pollStatus();
+  if (tick % 750 === 375) await loadHealthHist(); // ~cada 10 min: día nuevo o disco conectado después
+  if (running ? tick % 4 === 1 : tick % 10 === 1) await pollEvents();
+  if (!running && tick % 75 === 1 && !$("view-clone").hidden) await loadChanges();
+  watchFinish();
+  renderAll();
+  setTimeout(loop, running ? 750 : 800);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Acciones
+// ---------------------------------------------------------------------------------------------
+function openConfirm() {
+  const st = S.status, dst = dstDisk(), src = srcDisk();
+  if (!st || !dst || !src) return;
+  const letters = (dst.partitions || []).filter((p) => p.letter).map((p) => `${p.letter}${p.label ? ` ${p.label}` : ""}`).join(", ");
+  $("dlgTarget").innerHTML = `<b>Disco ${dst.number}: ${esc(diskLabel(dst))}</b><span class="num">${esc(fmtBytes(dst.bytes) || "")}, ${esc(busLabel(dst) || "")}${dst.serial ? `, serie ${esc(dst.serial)}` : ""}</span>${letters ? `<br><span class="muted">Ahora contiene: ${esc(letters)}</span>` : ""}`;
+  $("dlgSource").textContent = `Origen: disco ${src.number}, ${diskLabel(src)} (solo se lee). Se copia C: desde una instantánea congelada y se verifica el 100 % de lo escrito.`;
+  $("dlgAck").checked = false;
+  $("dlgGo").disabled = true;
+  $("confirmDlg").showModal();
+}
+async function reclone() {
+  const dst = dstDisk(), rb = $("btnReclone");
+  if (!dst || !rb) return;
+  if (!S.recloneArmed) {
+    S.recloneArmed = true;
+    rb.textContent = "Confirmar: quitar la protección del disco " + dst.number;
+    setTimeout(() => { S.recloneArmed = false; if ($("btnReclone")) $("btnReclone").textContent = "Quiero reclonarlo"; }, 6000);
+    return;
+  }
+  S.recloneArmed = false;
+  try {
+    const r = await api(`/api/clear-marker?disk=${dst.number}`, { method: "POST" });
+    toast(r.message || (r.ok ? "Listo." : "No se pudo."), r.ok ? "" : "warn");
+  } catch (e) { toast("No se pudo quitar la protección.", "warn"); }
+  await pollStatus(); renderAll();
+}
+async function startClone() {
+  const dst = dstDisk();
+  if (!dst || !dst.model || !dst.bytes) { toast("No se pudo leer la identidad del destino. Espera a que aparezca y vuelve a intentar.", "warn"); return; }
+  S.startRequested = true;
+  renderIdle();
+  try {
+    // NVF-E035: el motor solo borra el disco si sigue siendo exactamente este (modelo y tamaño).
+    const q = `disk=${dst.number}&bytes=${dst.bytes}&model=${encodeURIComponent(dst.model)}`;
+    const r = await api(`/api/start-clone?${q}`, { method: "POST" });
+    if (!r.ok) { S.startRequested = false; renderIdle(); toast(r.message || "No se pudo iniciar.", "warn"); return; }
+    toast(r.message || "Clonación iniciada.");
+  } catch (e) {
+    S.startRequested = false;
+    toast("No se pudo iniciar: el motor de NVMeForge no respondió.", "warn");
+  }
+}
+
+document.querySelectorAll(".nav button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".nav button").forEach((x) => x.removeAttribute("aria-current"));
+  b.setAttribute("aria-current", "page");
+  document.querySelectorAll(".view").forEach((v) => { v.hidden = v.id !== `view-${b.dataset.view}`; });
+  if (b.dataset.view === "machine" && !S.system) pollStatus(true).then(renderAll);
+  if (b.dataset.view === "log") Promise.all([pollEvents(), loadRuns(), loadLogRun()]).then(renderEvents);
+}));
+$("btnStart").addEventListener("click", openConfirm);
+$("dstPick").addEventListener("change", (e) => {
+  if (e.target.name !== "tdisk") return;
+  S.targetSel = Number(e.target.value);
+  S.dstPickSig = "";
+  renderAll();
+});
+$("dlgAck").addEventListener("change", (e) => { $("dlgGo").disabled = !e.target.checked; });
+// F9: al confirmar (gesto del usuario) se pide permiso de notificación y se desbloquea el audio; nunca frena el inicio.
+$("dlgGo").addEventListener("click", () => {
+  try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => { }); } catch (e) { }
+  if (soundOn) audio();
+});
+$("confirmDlg").addEventListener("close", () => { if ($("confirmDlg").returnValue === "go" && $("dlgAck").checked) startClone(); });
+$("btnElevate").addEventListener("click", async () => { try { const r = await api("/api/elevate", { method: "POST" }); toast(r.message || "Acepta el aviso de Windows."); } catch (e) { toast("No se pudo pedir permisos.", "warn"); } });
+function applyTheme(t) {
+  if (t && t !== "bosque") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  document.querySelectorAll("[data-theme-pick]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themePick === (t || "bosque"))));
+  try { localStorage.setItem("nvf-theme", t || "bosque"); } catch (e) { }
+}
+document.querySelectorAll("[data-theme-pick]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.themePick)));
+applyTheme(document.documentElement.dataset.theme || "bosque");
+$("btnBench").addEventListener("click", runBench);
+$("btnSuite").addEventListener("click", runSuite);
+$("btnSuiteCancel").addEventListener("click", cancelSuite);
+$("btnSuiteCopy").addEventListener("click", () => copyText(suiteText()));
+$("suiteSize").addEventListener("change", renderBenchPick);
+$("suitePasses").addEventListener("change", renderBenchPick);
+$("suiteLetter").addEventListener("change", renderBenchPick);
+document.addEventListener("change", (e) => { if (e.target?.name === "bdisk") renderBenchPick(); });
+$("btnRaw").addEventListener("click", async () => { S.rawMode = !S.rawMode; await pollEvents(); renderEvents(); });
+$("btnLogMode").addEventListener("click", async () => { S.logRaw = !S.logRaw; await pollEvents(); await loadLogRun(); renderEvents(); });
+$("runSel").addEventListener("change", async (e) => { S.logRun = e.target.value; await loadLogRun(); renderEvents(); });
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast("Copiado al portapapeles."); } catch (e) { toast("No se pudo copiar.", "warn"); } }
+$("btnCopyEvents").addEventListener("click", () => copyText(S.rawMode ? S.rawLog || "" : S.events || ""));
+$("btnLogCopy").addEventListener("click", () => copyText(S.logRun ? S.logRunText || "" : S.logRaw ? S.rawLog || "" : S.events || ""));
+
+// NVF-E033: tell the engine this window is closing; it exits by itself unless a clone or benchmark
+// is running or another NVMeForge window comes back within a few seconds (e.g. a reload).
+window.addEventListener("pagehide", () => {
+  try { fetch("/api/ui-closed", { method: "POST", keepalive: true, headers: { "X-NVMeForge": "1" } }); } catch (e) { }
+});
+
+// Arranque progresivo: la ventana se dibuja de inmediato y cada dato aparece en cuanto llega.
+(function init() {
+  renderAll();
+  const step = (p) => p.then(renderAll, renderAll);
+  step(pollProgress());
+  step(pollEvents());
+  step(loadBenchHist());
+  step(loadSuite());
+  step(loadSuiteHist());
+  step(pollStatus(true).then(loadHealthHist)); // after a /api/status has recorded today's row
+  step(loadRuns());
+  step(loadClones().then(() => loadChanges(true)));
+  setTimeout(loop, 800);
+})();
+</script>
+</body>
+</html>

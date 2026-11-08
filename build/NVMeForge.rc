@@ -1,0 +1,32 @@
+// NVMeForge - recursos del ejecutable: icono (9 resoluciones) e informacion de version.
+// SignPath: ProductName debe coincidir con el nombre del proyecto y la version debe ser la misma en todo.
+1 ICON "assets/app.ico"
+
+1 VERSIONINFO
+FILEVERSION 3,1,0,0
+PRODUCTVERSION 3,1,0,0
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080a04b0"
+        BEGIN
+            VALUE "CompanyName", "Proyecto NVMeForge"
+            VALUE "FileDescription", "NVMeForge - clonador de Windows a NVMe con verificacion"
+            VALUE "FileVersion", "3.1.0"
+            VALUE "InternalName", "NVMeForge"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Carlos Javier y los autores de NVMeForge. GPL-3.0-or-later."
+            VALUE "OriginalFilename", "NVMeForge.exe"
+            VALUE "ProductName", "NVMeForge"
+            VALUE "ProductVersion", "3.1.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x080a, 1200
+    END
+END

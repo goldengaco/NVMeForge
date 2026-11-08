@@ -1,0 +1,54 @@
+# MOVER ESTE ARCHIVO A .github\workflows\build.yml AL CREAR EL REPOSITORIO (GitHub solo ejecuta los flujos de esa carpeta).
+# Compila y prueba NVMeForge en un runner de GitHub (requisito de SignPath: compilación verificable
+# a partir del código del repositorio). Las versiones etiquetadas vX.Y.Z suben el .exe como artefacto.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+
+      - name: Pruebas unitarias
+        run: zig build test
+
+      - name: Compilar
+        run: zig build --release=fast
+
+      - name: Subir ejecutable sin firmar
+        id: upload-unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: NVMeForge-sin-firmar
+          path: zig-out/bin/NVMeForge.exe
+          if-no-files-found: error
+
+      # Firma con SignPath Foundation. Activar cuando SignPath apruebe el proyecto:
+      # 1) agregar el secreto SIGNPATH_API_TOKEN al repositorio;
+      # 2) poner los valores que da SignPath (organization-id, project-slug, signing-policy-slug);
+      # 3) quitar los comentarios de este paso.
+      # - name: Firmar con SignPath
+      #   if: startsWith(github.ref, 'refs/tags/v')
+      #   uses: signpath/github-action-submit-signing-request@v3
+      #   with:
+      #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+      #     organization-id: "<id de organizacion en SignPath>"
+      #     project-slug: "NVMeForge"
+      #     signing-policy-slug: "release-signing"
+      #     github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+      #     wait-for-completion: true
+      #     output-artifact-directory: firmado
