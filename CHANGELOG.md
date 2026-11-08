@@ -1,5 +1,9 @@
 # Cambios
 
+## 3.1.1 — 2026-11-08
+
+- **Enlace lento confirmable (NVF-E010 → NVF-E045):** en PCs sin puerto USB 3 el adaptador puede leer a ~60 MB/s; antes era un bloqueo fatal. Ahora el primer intento se detiene con la velocidad medida y el tiempo estimado real (copia + relectura completa a esa velocidad + pasos finales, nada inventado), y tras confirmarlo en el modal propio se puede clonar (confirmación de un solo uso; la verificación del 100 % con XxHash64 no cambia). Solo con cargador conectado, sin suspender ni hibernar y sin uso intensivo por la instantánea VSS larga. Por línea de comandos: `--clone --target=N --slow-ok`.
+
 ## 3.1.0 — 2026-11-01
 
 - **Tamaño de la prueba:** 1 GiB (como CrystalDiskMark), 4 o 16 GiB. Las pasadas duran 5 s, así que un archivo más grande reparte las pruebas en más zona del disco (menos ayuda de sus cachés); no alarga las escrituras. El historial guarda el tamaño (columna 17; versiones anteriores a la 3.1 ignoran esas filas).

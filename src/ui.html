@@ -705,6 +705,19 @@ select.sel { background: var(--surface-2); color: var(--text); border: 1px solid
   </form>
 </dialog>
 
+<dialog id="nvmeforgeConfirmModal" aria-labelledby="slowTitle">
+  <form method="dialog" class="dlg">
+    <h2 id="slowTitle">Clonar con enlace lento</h2>
+    <p>El disco destino lee a <b id="slowSpeed">—</b> (ritmo de USB 2.0). Con ese ritmo, la copia más la relectura completa del 100 % tardará unas <b id="slowEta">—</b>.</p>
+    <p class="muted">Solo continúa si tu equipo no tiene USB 3: mantén el cargador conectado, no suspendas ni hibernes, y evita el uso intensivo mientras dure (la instantánea VSS de C: queda abierta todo ese tiempo). La verificación del 100 % de lo escrito no cambia.</p>
+    <label class="ack"><input type="checkbox" id="slowAck"><span>Entiendo que tardará ese tiempo y que no debo suspender el equipo.</span></label>
+    <div class="row">
+      <button class="btn" value="cancel">Cancelar</button>
+      <button class="btn btn-danger" id="slowGo" value="go" disabled>Clonar de todos modos</button>
+    </div>
+  </form>
+</dialog>
+
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script>
@@ -739,6 +752,7 @@ const S = {
   openedAt: Date.now(),
   targetSel: null,    // disco destino elegido por el usuario (v2.7: ya no es fijo el disco 1)
   dstPickSig: "",
+  slowShownSig: "",   // NVF-E045: el aviso de enlace lento se muestra solo una vez por detalle
 };
 const STAGE_NAMES = ["Destino y bus USB", "Instantánea de C:", "Comprobaciones", "Particiones nuevas", "Copia y verificación", "Reparar y ampliar", "Arranque y WinRE"];
 const KIND_NAMES = { efi: "Arranque EFI", msr: "Reservada (MSR)", data: "Datos", recovery: "Recuperación", other: "Otra" };
@@ -751,7 +765,7 @@ const GUIDE = {
   "NVF-E008": { t: "El destino es el disco de Windows", touched: "Nada. Se detuvo antes de borrar.", todo: "Conecta el NVMe destino por el adaptador USB; el disco de Windows nunca puede ser el destino." },
   "NVF-E009": { t: "No hay letras de unidad libres", touched: "Nada. Se detuvo antes de borrar.", todo: "NVMeForge necesita 5 letras de unidad libres para trabajar. Expulsa algunas unidades USB, de red o lectores de tarjetas y reintenta. (En versiones anteriores este código decía qué disco usaba la letra: cámbiale la letra en Administración de discos.)" },
   "NVF-E039": { t: "Quedó una letra de un disco que ya no existe", touched: "Nada. Se detuvo antes de borrar.", todo: "En el Explorador aparece como \"Disco local\" sin tamaño. NVMeForge intentó quitarla y Windows no lo dejó: reinicia el equipo (la limpia) o, en PowerShell como administrador, usa mountvol con esa letra y /D. Después reintenta." },
-  "NVF-E010": { t: "El adaptador está funcionando a velocidad USB 2.0", touched: "Nada.", todo: "Conéctalo a un puerto USB-C de 10 Gbps, con un cable que lo soporte, y reintenta." },
+  "NVF-E010": { t: "El adaptador va a velocidad USB 2.0 (enlace lento confirmable)", touched: "Nada. Se detuvo antes de borrar.", todo: "Si tu equipo sí tiene USB 3, conéctalo a un puerto USB-C de 10 Gbps con un cable que lo soporte y reintenta. Si no tiene USB 3, pulsa Continuar con enlace lento: verás la velocidad medida y el tiempo estimado real; solo sigue con el cargador conectado, sin suspender ni hibernar y sin uso intensivo (la instantánea VSS queda abierta horas)." },
   "NVF-E011": { t: "Falló la transferencia de datos", touched: "El destino quedó a medio copiar; no lo uses. El origen está intacto.", todo: "Busca las líneas IO_ERROR en el registro. Revisa cable y adaptador y vuelve a clonar." },
   "NVF-E018": { t: "No se pudo instalar el arranque UEFI", touched: "El destino tiene la copia pero todavía no arranca.", todo: "Revisa bcdboot.log en el registro y vuelve a clonar." },
   "NVF-E019": { t: "Terminó con advertencias", touched: "El destino está copiado y el arranque instalado.", todo: "Revisa en los eventos qué pasos dicen ADVERTENCIA antes de instalar el disco." },
@@ -1485,7 +1499,7 @@ function watchFinish() {
 function renderResult() {
   const box = $("resultArea");
   const p = S.progress || {};
-  if (!p.done || !(isError() || isSuccess() || isWarnDone())) { box.hidden = true; return; }
+  if (!p.done || !(isError() || isSuccess() || isWarnDone())) { box.hidden = true; delete box.dataset.sig; return; }
   box.hidden = false;
   const ev = S.events || "";
   const full = /VERIFY_FULL segmentos=(\d+)\/(\d+) bytes=(\d+)\/(\d+) segmentos_con_diferencias=(\d+)/.exec(ev);
@@ -1506,11 +1520,9 @@ function renderResult() {
     if (box.dataset.sig !== html) { box.innerHTML = html; box.dataset.sig = html; }
     return;
   }
-  delete box.dataset.sig;
   const code = errCode();
   const g = GUIDE[code] || { t: "La clonación se detuvo", touched: "Revisa los eventos para ver hasta dónde llegó.", todo: "Revisa el registro y vuelve a intentarlo." };
-  box.className = "panel result err";
-  box.innerHTML = `<div>
+  const html = `<div>
     <h2>${esc(g.t)}${code ? ` <span class="faint" style="font-size:14px">${esc(code)}</span>` : ""}</h2>
     <p class="muted">${esc((p.stage || "").replace(/^\s*❌\s*\[NVF-E\d+\]\s*/u, ""))}. ${esc(p.detail || "")}</p>
     <div class="explain" style="grid-template-columns:repeat(2,minmax(0,1fr))">
@@ -1518,7 +1530,19 @@ function renderResult() {
       <div><h3>Qué hacer</h3><p>${esc(g.todo)}</p></div>
     </div>
   </div>
-  <div><button class="btn" onclick="S.startRequested=false;S.progress.done=false;renderAll()">Volver a revisar</button></div>`;
+  <div><button class="btn" onclick="S.startRequested=false;S.progress.done=false;renderAll()">Volver a revisar</button>${code === "NVF-E010" ? ` <button class="btn btn-danger" id="btnSlowRetry">Continuar con enlace lento</button>` : ""}</div>`;
+  // NVF-E045: no recrear el panel en cada tick si nada cambió (evita reatachar el botón cada 750 ms).
+  if (box.dataset.sig === html) return;
+  box.className = "panel result err";
+  box.innerHTML = html;
+  box.dataset.sig = html;
+  if (code === "NVF-E010") {
+    const sb = document.getElementById("btnSlowRetry");
+    if (sb) sb.addEventListener("click", openSlowModal);
+    // Se abre solo una vez por aviso: el usuario confirma o cancela en el modal propio (nunca confirm()/alert()).
+    const sig = `${p.stage || ""}||${p.detail || ""}`;
+    if (S.slowShownSig !== sig) { S.slowShownSig = sig; openSlowModal(); }
+  }
 }
 
 function compactEvents(text) {
@@ -2022,6 +2046,20 @@ function openConfirm() {
   $("dlgGo").disabled = true;
   $("confirmDlg").showModal();
 }
+// NVF-E045: confirmación explícita para clonar con enlace lento (<60 MB/s). Nada inventado:
+// la velocidad sale de /api/progress (mb_s medido por el motor) y el tiempo, del detalle o de eta_sec.
+function openSlowModal() {
+  const p = S.progress || {};
+  const mbs = Number(p.mb_s) || 0;
+  const d = parseDetail(p.detail || "");
+  const eta = p.eta_sec != null && isFinite(p.eta_sec) ? Number(p.eta_sec) : d.eta;
+  $("slowSpeed").textContent = mbs > 0 ? `${nf(mbs, 1)} MB/s` : "menos de 60 MB/s";
+  $("slowEta").textContent = eta != null ? fmtDur(eta) : "tiempo no disponible";
+  $("slowAck").checked = false;
+  $("slowGo").disabled = true;
+  const m = $("nvmeforgeConfirmModal");
+  if (m && !m.open) m.showModal();
+}
 async function reclone() {
   const dst = dstDisk(), rb = $("btnReclone");
   if (!dst || !rb) return;
@@ -2038,19 +2076,24 @@ async function reclone() {
   } catch (e) { toast("No se pudo quitar la protección.", "warn"); }
   await pollStatus(); renderAll();
 }
-async function startClone() {
+async function startClone(slowOk = false) {
+  if (S.startRequested) return; // NVF-E045: no doble envío (doble clic o modal + botón).
+  if (slowOk) { const sb = document.getElementById("btnSlowRetry"); if (sb) sb.disabled = true; } // el modal se cierra solo (method=dialog)
   const dst = dstDisk();
   if (!dst || !dst.model || !dst.bytes) { toast("No se pudo leer la identidad del destino. Espera a que aparezca y vuelve a intentar.", "warn"); return; }
   S.startRequested = true;
+  S.slowShownSig = ""; // una corrida nueva merece su propio aviso de enlace lento
   renderIdle();
   try {
     // NVF-E035: el motor solo borra el disco si sigue siendo exactamente este (modelo y tamaño).
-    const q = `disk=${dst.number}&bytes=${dst.bytes}&model=${encodeURIComponent(dst.model)}`;
+    // NVF-E045: slow_ok=1 confirma el enlace lento (<60 MB/s) por una sola corrida.
+    const q = `disk=${dst.number}&bytes=${dst.bytes}&model=${encodeURIComponent(dst.model)}${slowOk ? "&slow_ok=1" : ""}`;
     const r = await api(`/api/start-clone?${q}`, { method: "POST" });
-    if (!r.ok) { S.startRequested = false; renderIdle(); toast(r.message || "No se pudo iniciar.", "warn"); return; }
+    if (!r.ok) { S.startRequested = false; const sb2 = document.getElementById("btnSlowRetry"); if (sb2) sb2.disabled = false; renderIdle(); toast(r.message || "No se pudo iniciar.", "warn"); return; }
     toast(r.message || "Clonación iniciada.");
   } catch (e) {
     S.startRequested = false;
+    const sb2 = document.getElementById("btnSlowRetry"); if (sb2) sb2.disabled = false;
     toast("No se pudo iniciar: el motor de NVMeForge no respondió.", "warn");
   }
 }
@@ -2070,12 +2113,14 @@ $("dstPick").addEventListener("change", (e) => {
   renderAll();
 });
 $("dlgAck").addEventListener("change", (e) => { $("dlgGo").disabled = !e.target.checked; });
+$("slowAck").addEventListener("change", (e) => { $("slowGo").disabled = !e.target.checked; });
 // F9: al confirmar (gesto del usuario) se pide permiso de notificación y se desbloquea el audio; nunca frena el inicio.
 $("dlgGo").addEventListener("click", () => {
   try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => { }); } catch (e) { }
   if (soundOn) audio();
 });
 $("confirmDlg").addEventListener("close", () => { if ($("confirmDlg").returnValue === "go" && $("dlgAck").checked) startClone(); });
+$("nvmeforgeConfirmModal").addEventListener("close", () => { if ($("nvmeforgeConfirmModal").returnValue === "go" && $("slowAck").checked) startClone(true); });
 $("btnElevate").addEventListener("click", async () => { try { const r = await api("/api/elevate", { method: "POST" }); toast(r.message || "Acepta el aviso de Windows."); } catch (e) { toast("No se pudo pedir permisos.", "warn"); } });
 function applyTheme(t) {
   if (t && t !== "bosque") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;

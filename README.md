@@ -43,7 +43,7 @@ Línea de comandos:
 
 ```text
 NVMeForge.exe --preflight [--target=N]   Diagnóstico sin escribir nada -> %TEMP%\NVMeForge\logs\preflight.log
-NVMeForge.exe --clone --target=N         Clona en el disco N (lo BORRA). --target es obligatorio
+NVMeForge.exe --clone --target=N [--slow-ok]  Clona en el disco N (lo BORRA). --target es obligatorio; --slow-ok confirma un enlace lento (<60 MB/s) tras ver su tiempo estimado
 NVMeForge.exe --version
 ```
 
@@ -60,9 +60,12 @@ NVMeForge.exe --version
 Con [Zig 0.15.2](https://ziglang.org/download/):
 
 ```text
-zig build --release=fast    # -> zig-out\bin\NVMeForge.exe
-zig build test              # pruebas unitarias del motor (en Windows)
+zig build                 # iterar en Debug: compila mucho más rápido que --release=fast
+zig build --release=fast  # solo al final -> zig-out\bin\NVMeForge.exe
+zig build test            # pruebas unitarias del motor (en Windows)
 ```
+
+La caché `.zig-cache` acelera las recompilaciones: no la borres entre iteraciones.
 
 El ejecutable apunta a x86-64-v2 (lo mismo que exige Windows 11 24H2), así que corre en cualquier PC con Windows 11, sea Intel o AMD. La compilación oficial la hace GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)) a partir de este código.
 
