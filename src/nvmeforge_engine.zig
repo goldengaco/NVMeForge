@@ -6,7 +6,7 @@ const std = @import("std");
 // Este programa es software libre: puede redistribuirlo y/o modificarlo bajo los terminos de la
 // Licencia Publica General GNU version 3 o posterior (archivo LICENSE). Se distribuye SIN GARANTIA.
 
-const VERSION = "3.1.0";
+const VERSION = "3.1.1";
 
 const UI_HTML = @embedFile("ui.html");
 const ICO_FILE = @embedFile("assets/nvmeforge.ico");
@@ -236,6 +236,10 @@ var g_progress_buf: [2048]u8 = undefined;
 var g_progress_len: usize = 0;
 var g_clone_running = std.atomic.Value(bool).init(false);
 var g_bench_running = std.atomic.Value(bool).init(false);
+// NVF-E045: closes the double-POST race in /api/start-clone: while true, the per-run flags
+// (g_target_disk, g_expect_*, g_slowack_set) belong to the request being started. The worker
+// lowers it with a defer when its thread ends (after capturing the flags at entry).
+var g_starting = std.atomic.Value(bool).init(false);
 
 // NVF-E033: the backend used to stay alive (PID in memory) after the window was closed.
 // Every UI request refreshes g_last_ui_ms; the page reports its own closing via POST /api/ui-closed.
@@ -625,6 +629,36 @@ var g_expect_set: bool = false;
 var g_expect_bytes: u64 = 0;
 var g_expect_model_buf: [96]u8 = undefined;
 var g_expect_model_len: usize = 0;
+
+// NVF-E045 (v3.1.1): NVF-E010 is confirmable. A PC without USB 3 whose adapter reads at ~60 MB/s
+// can still clone after an explicit confirmation with the real estimated time. The ack is single-use
+// (same pattern as g_expect_set): the second start-clone carries slow_ok=1 (or --slow-ok on the
+// command line) and the worker consumes it when it reaches the slow-link check.
+var g_slowack_mutex: std.Thread.Mutex = .{};
+var g_slowack_set: bool = false;
+
+fn takeSlowAck() bool {
+    g_slowack_mutex.lock();
+    defer g_slowack_mutex.unlock();
+    const v = g_slowack_set;
+    g_slowack_set = false;
+    return v;
+}
+
+/// Pure: true when the measured link speed needs the slow-link confirmation (NVF-E010).
+fn slowLinkNeedsConfirm(raw_mbs: f64) bool {
+    return raw_mbs > 0.0 and raw_mbs < 60.0;
+}
+
+/// Pure: honest ETA for a slow link, in seconds: the bytes travel twice through that link (copy
+/// write + full XxHash64 re-read, NVF-E026) plus the fixed final steps (same 210 s tail as
+/// estimateEtaSec while the tail is not done). Null when there is no measured speed (NVF-E034:
+/// without a measurement there is no estimate).
+fn slowLinkEtaSec(need_bytes: u64, mbs: f64) ?u64 {
+    if (need_bytes == 0 or mbs <= 0.0) return null;
+    const secs = (@as(f64, @floatFromInt(need_bytes)) / (mbs * 1048576.0)) * 2.0 + 210.0;
+    return @intFromFloat(@max(0.0, secs));
+}
 
 // Result of the last copy, for an honest final message.
 var g_last_copied_bytes = std.atomic.Value(u64).init(0);
@@ -2686,6 +2720,11 @@ fn verifyTargetAgainstDigests(
 fn cloneWorkerThread() void {
     if (g_clone_running.swap(true, .seq_cst)) return;
     defer g_clone_running.store(false, .seq_cst);
+    // NVF-E045: single-use confirmations belong to THIS run: capture the slow-link ack first, so
+    // every exit below (even the early ones) consumes it. The g_starting defer runs before the
+    // clone_running reset above (LIFO): a POST landing in between is still rejected.
+    const slow_ok_run = takeSlowAck();
+    defer g_starting.store(false, .seq_cst);
     // v3.0: set our flag first, then look at the benchmark's (startSuite does the mirror image), so the two
     // can never run together even if both requests arrive at the same moment.
     if (g_bench_running.load(.seq_cst)) {
@@ -2829,9 +2868,26 @@ fn cloneWorkerThread() void {
 
     const raw_mbs = benchmarkPhysicalDriveDma(tdisk);
     const bench_mbs: f64 = if (raw_mbs > 0.0) raw_mbs else 0.0; // v2.4: never an invented speed
-    if (raw_mbs > 0.0 and raw_mbs < 60.0) {
-        updateProgress("❌ [NVF-E010] El disco destino va a velocidad de USB 2.0", "Se leyó a menos de 60 MB/s: el adaptador o el cable quedó en USB 2.0. Conéctalo a un puerto USB 3 (10 Gbps) y reintenta. No se tocó ningún disco.", 0.0, raw_mbs, true);
-        return;
+    // NVF-E045 (v3.1.1): a slow link is confirmable, not fatal. The first attempt stops with the
+    // measured speed and the real ETA; the second attempt (slow_ok=1 / --slow-ok, single-use)
+    // logs the explicit confirmation and follows the normal flow (100 % XxHash64 check unchanged).
+    if (slowLinkNeedsConfirm(raw_mbs)) {
+        if (slow_ok_run) {
+            var l: [256]u8 = undefined;
+            if (std.fmt.bufPrint(&l, "LENTO enlace {d:.1} MB/s confirmado por el usuario (una sola vez) -> CONTINUA con tiempo estimado largo", .{raw_mbs})) |s| appendRunLog(s) else |_| {}
+        } else {
+            var dt_buf: [512]u8 = undefined;
+            var dt_s: []const u8 = "";
+            if (slowLinkEtaSec(need_bytes, raw_mbs)) |eta| {
+                const m: u64 = eta / 60;
+                const s: u64 = eta % 60;
+                dt_s = std.fmt.bufPrint(&dt_buf, "Se midió {d:.1} MB/s en el disco destino (enlace lento, ritmo de USB 2.0). Con ese ritmo, copiar {d:.1} GB y releer el 100 % tardaría alrededor de ETA: {d}m {d:0>2}s (pasos finales incluidos). Si tu equipo no tiene USB 3, puedes continuar: vuelve a confirmar marcando la casilla de enlace lento (cargador conectado, sin suspender ni hibernar, sin uso intensivo por la instantánea VSS larga). No se tocó ningún disco.", .{ raw_mbs, decGB(need_bytes), m, s }) catch "Enlace lento: menos de 60 MB/s. No se tocó ningún disco.";
+            } else {
+                dt_s = "Se midió un enlace lento (menos de 60 MB/s). No se tocó ningún disco.";
+            }
+            updateProgress("❌ [NVF-E010] Enlace lento: el destino va a velocidad de USB 2.0", dt_s, 0.0, raw_mbs, true);
+            return;
+        }
     }
 
     // NVF-E023: physical identity of target vs source. Disk numbers can change after a USB re-plug, so
@@ -5274,28 +5330,35 @@ fn handleClient(alloc: std.mem.Allocator, stream: std.net.Stream) void {
             sendHttpResponse(stream, "application/json; charset=utf-8", "{\"ok\":false,\"need_admin\":true,\"message\":\"Primero da permisos de administrador (botón Pedir) y vuelve a confirmar la clonación.\"}");
             return;
         }
-        if (g_clone_running.load(.seq_cst)) {
+        // NVF-E045: g_starting closes the double-POST race: two simultaneous requests would
+        // overwrite g_expect_*/g_slowack_set before the worker reads them. The worker lowers it
+        // right after capturing the flags (or the spawn cleanup below does, if it never runs).
+        if (g_clone_running.load(.seq_cst) or g_starting.swap(true, .seq_cst)) {
             sendHttpResponse(stream, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Ya hay una clonación en curso.\"}");
             return;
         }
         if (g_bench_running.load(.seq_cst)) {
             sendHttpResponse(stream, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Hay una prueba de rendimiento en curso. Espera a que termine o cancélala en Rendimiento.\"}");
+            g_starting.store(false, .seq_cst);
             return;
         }
         const bytes_s = queryParam(first_line, "bytes") orelse "";
         const model_s = queryParam(first_line, "model") orelse "";
         const disk_s = queryParam(first_line, "disk") orelse "";
+        const slow_s = queryParam(first_line, "slow_ok") orelse "";
         const exp_bytes = std.fmt.parseInt(u64, bytes_s, 10) catch 0;
         const exp_disk = std.fmt.parseInt(u32, disk_s, 10) catch NO_DISK;
         var model_dec: [96]u8 = undefined;
         const exp_model = percentDecode(model_s, &model_dec);
         if (exp_bytes == 0 or exp_model.len == 0 or exp_disk == NO_DISK) {
             sendHttpResponse(stream, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Falta la identidad del disco confirmado. Recarga la ventana y vuelve a confirmar.\"}");
+            g_starting.store(false, .seq_cst);
             return;
         }
         // NVF-E038: the chosen disk must exist and must not be the disk of the running Windows.
         if (!validTargetChoice(exp_disk, getVolumeDiskNumber('C'))) {
             sendHttpResponse(stream, "application/json; charset=utf-8", "{\"ok\":false,\"message\":\"Ese disco no puede ser el destino: es el disco de Windows o no existe. Elige otro disco.\"}");
+            g_starting.store(false, .seq_cst);
             return;
         }
         g_target_disk.store(exp_disk, .seq_cst);
@@ -5307,9 +5370,25 @@ fn handleClient(alloc: std.mem.Allocator, stream: std.net.Stream) void {
             g_expect_model_len = exp_model.len;
             g_expect_set = true;
         }
+        // NVF-E045: explicit slow-link confirmation for this run only (consumed by the worker).
+        if (std.mem.eql(u8, slow_s, "1")) {
+            g_slowack_mutex.lock();
+            g_slowack_set = true;
+            g_slowack_mutex.unlock();
+        }
         updateProgress("Iniciando la clonación", "Comprobando el disco destino confirmado...", 6.0, 0.0, false);
         sendHttpResponse(stream, "application/json; charset=utf-8", "{\"ok\":true,\"message\":\"Clonación iniciada.\"}");
-        const t = std.Thread.spawn(.{}, cloneWorkerThread, .{}) catch return;
+        const t = std.Thread.spawn(.{}, cloneWorkerThread, .{}) catch {
+            // The worker never ran: drop this run's flags so nothing stays armed (one confirmation = one run).
+            g_starting.store(false, .seq_cst);
+            g_slowack_mutex.lock();
+            g_slowack_set = false;
+            g_slowack_mutex.unlock();
+            g_expect_mutex.lock();
+            g_expect_set = false;
+            g_expect_mutex.unlock();
+            return;
+        };
         t.detach();
         return;
     }
@@ -5613,6 +5692,7 @@ pub fn main() u8 {
     var mode_rebind_clone = false;
     var mode_no_window = false;
     var mode_preflight = false;
+    var mode_slow_ok = false;
 
     var i: usize = 1;
     while (i < args.len) : (i += 1) {
@@ -5624,9 +5704,9 @@ pub fn main() u8 {
         if (std.mem.eql(u8, a, "--help") or std.mem.eql(u8, a, "-h")) {
             writeOut(
                 "NVMeForge v" ++ VERSION ++ " - clonador de Windows a NVMe con verificacion (GPL-3.0-or-later)\n" ++
-                    "Uso: NVMeForge.exe [--gui | --clone --target=N | --preflight [--target=N] | --version | --help]\n" ++
+                    "Uso: NVMeForge.exe [--gui | --clone --target=N [--slow-ok] | --preflight [--target=N] | --version | --help]\n" ++
                     "  (sin args / --gui)  Inicia el motor nativo y abre la ventana de escritorio NVMeForge\n" ++
-                    "  --clone --target=N  Clona el Windows en el disco N (BORRA el disco N). --target es obligatorio\n" ++
+                    "  --clone --target=N [--slow-ok]  Clona el Windows en el disco N (BORRA el disco N). --target es obligatorio; --slow-ok confirma un enlace lento (<60 MB/s) en PCs sin USB 3\n" ++
                     "  --preflight         Diagnostico NO destructivo -> %TEMP%\\NVMeForge\\logs\\preflight.log\n" ++
                     "  --version           Muestra la version del ejecutable nativo\n" ++
                     "  --help              Muestra esta ayuda\n",
@@ -5634,6 +5714,7 @@ pub fn main() u8 {
             return 0;
         }
         if (std.mem.eql(u8, a, "--clone")) mode_clone = true;
+        if (std.mem.eql(u8, a, "--slow-ok")) mode_slow_ok = true;
         if (std.mem.startsWith(u8, a, "--target=")) {
             const t = std.fmt.parseInt(u32, a["--target=".len..], 10) catch NO_DISK;
             if (t >= MAX_DISKS) {
@@ -5646,6 +5727,17 @@ pub fn main() u8 {
         if (std.mem.eql(u8, a, "--rebind-admin")) mode_rebind_admin = true;
         if (std.mem.eql(u8, a, "--rebind-admin-clone")) mode_rebind_clone = true;
         if (std.mem.eql(u8, a, "--no-window")) mode_no_window = true;
+    }
+
+    // NVF-E045: --slow-ok is the command-line form of the single-use slow-link confirmation.
+    // Only for an actual clone run: in GUI/preflight mode a stale ack must never skip the UI confirm.
+    if (mode_slow_ok and !(mode_clone or mode_rebind_clone)) {
+        writeOut("--slow-ok solo tiene efecto con --clone (confirma un enlace lento de un solo uso).\n");
+    }
+    if (mode_slow_ok and (mode_clone or mode_rebind_clone)) {
+        g_slowack_mutex.lock();
+        g_slowack_set = true;
+        g_slowack_mutex.unlock();
     }
 
     if (mode_preflight) return runPreflightDiagnostics(alloc);
@@ -5665,7 +5757,10 @@ pub fn main() u8 {
     if (mode_clone) {
         if (!isAdmin()) {
             var eb: [64]u8 = undefined;
-            const ea = std.fmt.bufPrint(&eb, "--rebind-admin-clone --target={d}", .{targetDisk()}) catch return 2;
+            const ea = if (mode_slow_ok)
+                std.fmt.bufPrint(&eb, "--rebind-admin-clone --target={d} --slow-ok", .{targetDisk()}) catch return 2
+            else
+                std.fmt.bufPrint(&eb, "--rebind-admin-clone --target={d}", .{targetDisk()}) catch return 2;
             _ = elevateSelf(alloc, ea);
             return 0;
         }
@@ -6076,6 +6171,33 @@ test "NVF-E035 start request carries the confirmed target and it must match exac
     try std.testing.expect(targetMatchesConfirmed("SSD 990 PRO 2TB", 2000398934016, "SSD 990 PRO 2TB", 2000398934016));
     try std.testing.expect(!targetMatchesConfirmed("SSD 990 PRO 2TB", 2000398934016, "SSD 990 PRO 2TB", 1000204886016));
     try std.testing.expect(!targetMatchesConfirmed("WD_BLACK SN850X 2000GB", 2000398934016, "SSD 990 PRO 2TB", 2000398934016));
+}
+
+test "NVF-E045 slow link ETA comes only from the measured speed" {
+    // 60 MiB through a 60 MiB/s link: 1 s write + 1 s re-read + 210 s tail = 212 s.
+    try std.testing.expectEqual(@as(?u64, 212), slowLinkEtaSec(60 * 1024 * 1024, 60.0));
+    try std.testing.expectEqual(@as(?u64, 214), slowLinkEtaSec(60 * 1024 * 1024, 30.0));
+    try std.testing.expect(slowLinkEtaSec(500_000_000_000, 60.0).? > 4 * 3600); // ~500 GB at 60 MB/s: hours, not minutes
+    try std.testing.expect(slowLinkEtaSec(0, 60.0) == null);
+    try std.testing.expect(slowLinkEtaSec(1000, 0.0) == null);
+    try std.testing.expect(slowLinkEtaSec(1000, -1.0) == null);
+}
+
+test "NVF-E045 slow-link confirmation needs a slow speed and the ack is single-use" {
+    try std.testing.expect(slowLinkNeedsConfirm(59.9));
+    try std.testing.expect(slowLinkNeedsConfirm(0.1));
+    try std.testing.expect(!slowLinkNeedsConfirm(0.0));
+    try std.testing.expect(!slowLinkNeedsConfirm(-1.0));
+    try std.testing.expect(!slowLinkNeedsConfirm(60.0));
+    try std.testing.expect(!slowLinkNeedsConfirm(650.0));
+    g_slowack_mutex.lock();
+    g_slowack_set = true;
+    g_slowack_mutex.unlock();
+    try std.testing.expect(takeSlowAck()); // second attempt proceeds
+    try std.testing.expect(!takeSlowAck()); // consumed: a third attempt stops again
+    // slow_ok values other than "1" (or absent) never arm the ack.
+    try std.testing.expect(!std.mem.eql(u8, queryParam("POST /api/start-clone?disk=1&slow_ok=0 HTTP/1.1", "slow_ok") orelse "", "1"));
+    try std.testing.expectEqualStrings("", queryParam("POST /api/start-clone?disk=1 HTTP/1.1", "slow_ok") orelse "");
 }
 
 test "NVF-E036 power rule never blocks on unknown data and blocks low battery" {

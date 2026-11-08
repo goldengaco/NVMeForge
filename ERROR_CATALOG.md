@@ -81,6 +81,7 @@ flowchart TD
 | NVF-E042 | 2026-10-31 16:00 | Prueba de rendimiento (v3.0) | No se pudo crear el archivo de prueba de 1 GiB en la unidad elegida o no hay 3 GiB libres | Rendimiento | 🟡 v3.0.0: se comprueba el espacio antes de empezar y el mensaje dice la unidad y el error de Windows |
 | NVF-E043 | 2026-10-31 16:00 | Prueba de rendimiento (v3.0) | Falló una lectura o escritura del archivo de prueba, o Windows no permitió la E/S asíncrona | Rendimiento | 🟡 v3.0.0: la prueba se detiene, espera a que termine toda la E/S pendiente, borra el archivo y dice en qué prueba falló |
 | NVF-E044 | 2026-11-01 00:30 | Revisión de la 2.9 (pendiente) y Carlos: "hazlo más robusto" | Al empezar se quitan todas las letras del disco destino; si la corrida se detenía antes de borrarlo, ese disco quedaba sin letras | Etapa 3-4 | 🟡 v3.0.1: se anotan letra y volumen antes de quitarlas y se devuelven si la corrida se detiene antes de `clean` |
+| NVF-E045 | 2026-11-08 | Petición del usuario (equipos sin puerto USB 3) | Adaptador lento (~60 MB/s): NVF-E010 fatal impedía clonar sin USB 3 | Etapa 1/7 | 🛡️ Guardia confirmable (v3.1.1) |
 
 ---
 
@@ -358,3 +359,13 @@ flowchart TD
 - **Corrección:** `SavedLetters.capture/restore` (letra → `\\?\Volume{GUID}\` con GetVolumeNameForVolumeMountPointW / SetVolumeMountPointW, solo si la letra sigue libre; se libera antes S:/R: del clon para que la salida no la vuelva a quitar); `defrag <W>: /L` tras las particiones extra (solo registro); `copyLogsToClone` + `flushVolume` antes del mensaje final; `clones.tsv` con columnas opcionales de duración y bytes base (C: usado + extras); el tiempo restante suma el TRIM.
 - **Evidencia:** 45/46 pruebas en Wine (nuevas: ruta del registro en el clon, copia de archivos, duración en clones.tsv; E016 necesita `waitfor.exe`). Revisión independiente sin fallas graves; sus 3 recomendaciones y 2 detalles, corregidos.
 - **Regla:** si NVMeForge quita algo del sistema del usuario (una letra) y no llega a usarlo, lo devuelve.
+
+### NVF-E045 — NVF-E010 confirmable: clonar con adaptador lento en PCs sin USB 3 (v3.1.1)
+- **Reporte:** 2026-11-08, petición del usuario: hay PCs sin puerto USB 3 cuyo adaptador lee a ~60 MB/s; el bloqueo fatal de NVF-E010 les impedía clonar aunque aceptaran la espera. Se pide poder clonar tras confirmación explícita con el tiempo estimado real.
+- **Etapa:** Etapa 1/7 (velocidad real del destino), antes de tocar ningún disco.
+- **Causa:** `raw_mbs` en (0, 60) abortaba siempre con `❌ [NVF-E010]`, sin distinguir "cable en puerto lento" de "este equipo no tiene USB 3".
+- **Corrección:**
+  1. Motor (`src\nvmeforge_engine.zig`): si `slowLinkNeedsConfirm(raw_mbs)`, el primer intento se detiene con `❌ [NVF-E010]` que trae la velocidad medida y el ETA real (`slowLinkEtaSec`: los bytes viajan dos veces por ese enlace —escritura de la copia + relectura completa XxHash64 de NVF-E026— más 210 s de pasos finales, igual que `estimateEtaSec`; sin medición no hay estimado, NVF-E034). El segundo intento trae `slow_ok=1` (o `--slow-ok` por línea de comandos), un flag de un solo uso estilo `g_expect_set` que el worker captura al arrancar en un local (`slow_ok_run`: las 7 salidas tempranas también lo consumen) y sigue el flujo normal, anotándolo (`LENTO enlace ... confirmado por el usuario (una sola vez) -> CONTINUA`). La verificación del 100 % no cambia. `g_starting` evita que dos POST simultáneos se pisen los flags; si el hilo no arranca, los flags se limpian.
+  2. Interfaz (`src\ui.html`): ante NVF-E010 abre el modal propio `nvmeforgeConfirmModal` (nunca `confirm()`/`alert()`) con velocidad medida, tiempo estimado real y advertencias (cargador conectado, no suspender ni hibernar, no uso intensivo por la instantánea VSS larga); la ayuda de NVF-E010 explica la vía lenta.
+- **Evidencia:** pruebas unitarias nuevas (`NVF-E045 slow link ETA...`, `NVF-E045 slow-link confirmation...`); `zig` no instalado en este equipo → compilación y pruebas NO VERIFICADAS localmente (las correrá GitHub Actions al abrir el PR).
+- **Regla:** un enlace lento se confirma, nunca se silencia: una confirmación = una corrida; el ETA solo sale de la velocidad medida, nunca de un valor inventado.
